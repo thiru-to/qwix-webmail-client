@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/button'
 import { SearchField } from '../../components/ui/search-field'
 import { QueryState } from '../../components/ui/query-state'
 import { SkeletonRow } from '../../components/ui/skeleton'
-import type { Mail } from '../../data/mockMail'
+import type { Mail } from '../../api/mail'
 
 const emptyMessages: Mail[] = []
 

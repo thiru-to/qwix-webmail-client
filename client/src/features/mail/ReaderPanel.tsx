@@ -1,5 +1,5 @@
 import { ArrowLeft, FileText, Info, Send, Star, X } from 'lucide-react'
-import type { Mail } from '../../data/mockMail'
+import type { Mail } from '../../api/mail'
 import { Avatar } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'

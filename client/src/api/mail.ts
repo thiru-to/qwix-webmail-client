@@ -1,6 +1,8 @@
 import { mailbox, type Mail } from '../data/mockMail'
 import { delay, maybeFail } from './client'
 
+export type { Mail, Mailbox } from '../data/mockMail'
+
 export type CreateMessageInput = {
   to: string
   cc?: string[]

@@ -1,5 +1,5 @@
 import { Paperclip, Star } from 'lucide-react'
-import type { Mail } from '../../data/mockMail'
+import type { Mail } from '../../api/mail'
 import { Avatar } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
 import { IconButton } from '../../components/ui/icon-button'

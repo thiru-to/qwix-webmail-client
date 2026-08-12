@@ -9,7 +9,7 @@ import { MailSidebar } from './MailSidebar'
 import { MessageList } from './MessageList'
 import { ReaderPanel } from './ReaderPanel'
 import { ComposeDialog } from './ComposeDialog'
-import type { Mail } from '../../data/mockMail'
+import type { Mail } from '../../api/mail'
 import './mail.css'
 
 const emptyMessages: Mail[] = []
