@@ -32,7 +32,7 @@ export function ContactsWorkspace() {
     )
   }, [contacts, search])
 
-  const selected = visible.find((contact) => contact.id === selectedId) ?? visible[0] ?? contacts[0]
+  const selected = contacts.find((contact) => contact.id === selectedId) ?? visible[0] ?? contacts[0]
 
   return (
     <AppShell
