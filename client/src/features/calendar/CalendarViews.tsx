@@ -29,9 +29,8 @@ export function MonthView({
         {days.map((day) => {
           const dayEvents = eventsForDate(data.events, day.date)
           return (
-            <button
+            <div
               key={day.date}
-              type="button"
               className={[
                 'calendar-day',
                 day.inMonth ? '' : 'out-month',
@@ -43,33 +42,37 @@ export function MonthView({
                 .join(' ')}
               onClick={() => onSelectDate(day.date)}
             >
-              <span className="calendar-day-number">{day.dayOfMonth}</span>
+              <button
+                type="button"
+                className="calendar-day-select"
+                aria-label={`Select ${day.date}`}
+                aria-pressed={day.date === focusDate}
+                onClick={(click) => {
+                  click.stopPropagation()
+                  onSelectDate(day.date)
+                }}
+              >
+                <span className="calendar-day-number">{day.dayOfMonth}</span>
+              </button>
               <div className="calendar-day-events">
                 {dayEvents.slice(0, 3).map((event) => (
-                  <span
+                  <button
                     key={event.id}
+                    type="button"
                     className={`calendar-pill ${event.tone} ${event.id === selectedEventId ? 'selected' : ''}`}
                     onClick={(click) => {
                       click.stopPropagation()
                       onSelectEvent(event.id)
                     }}
-                    onKeyDown={(eventKey) => {
-                      if (eventKey.key === 'Enter') {
-                        eventKey.stopPropagation()
-                        onSelectEvent(event.id)
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
                   >
                     {event.title}
-                  </span>
+                  </button>
                 ))}
                 {dayEvents.length > 3 ? (
                   <span className="calendar-more">+{dayEvents.length - 3} more</span>
                 ) : null}
               </div>
-            </button>
+            </div>
           )
         })}
       </div>

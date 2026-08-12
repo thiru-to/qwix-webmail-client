@@ -12,6 +12,14 @@
   --surface-hover: #18212f;
   --surface-control: #151e2c;
   --card-border: #263247;
+  --card-hover-bg: #1c2534;
+  --card-hover-border: #3b4a63;
+  --card-hover-shadow: 0 8px 22px #0000001a;
+  --card-selected-hover-bg: #30152c;
+  --card-selected-hover-border: #ff2f7a;
+  --nav-active-hover-bg: #5a1438;
+  --nav-active-hover-text: #ffb4d3;
+  --chip-hover-outline: #ff73ac88;
   --pink: #ff176a;
   --pink-soft: #490f2f;
   --pink-faint: #251122;
@@ -36,6 +44,14 @@
   --surface-hover: #e9eef5;
   --surface-control: #f3f6fa;
   --card-border: #dbe2ec;
+  --card-hover-bg: #f8fafc;
+  --card-hover-border: #b8c5d6;
+  --card-hover-shadow: 0 8px 18px #8392a524;
+  --card-selected-hover-bg: #ffe8f2;
+  --card-selected-hover-border: #ff3d86;
+  --nav-active-hover-bg: #ffd7e8;
+  --nav-active-hover-text: #a9104c;
+  --chip-hover-outline: #ff4e9188;
   --pink-soft: #ffe6f0;
   --pink-faint: #fff2f7;
 }

@@ -8,6 +8,9 @@
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
+    /* API wire types. Type-only, so no server code reaches the bundle. */
+    "paths": { "@api/*": ["../api/src/*"] },
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

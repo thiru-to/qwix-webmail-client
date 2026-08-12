@@ -25,18 +25,18 @@
   align-items: flex-end;
   display: flex;
   justify-content: space-between;
-  padding: 0 5px 19px;
+  padding: 0 4px 12px;
 }
 .ui-panel-header h1 {
   color: var(--text);
-  font-size: 29px;
+  font-size: 26px;
   letter-spacing: -.04em;
   line-height: 1;
-  margin: 7px 0 7px;
+  margin: 4px 0;
 }
 .ui-panel-description {
   color: #8592a6;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .ui-toolbar {
@@ -49,23 +49,64 @@
 .ui-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 .ui-list-row {
   background: var(--panel-raised);
   border: 1px solid var(--card-border);
-  border-radius: 28px;
+  border-radius: 22px;
   cursor: pointer;
   display: grid;
-  gap: 15px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  padding: 20px 17px 17px;
+  gap: 12px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  padding: 14px 14px 12px;
   transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
-.ui-list-row:hover {
-  border-color: #3b4a63;
-  box-shadow: 0 8px 22px #0000001a;
+
+/* Shared raised-card hover used by Mail, Calendar agenda, and Contacts */
+.mail-card:hover,
+.ui-list-row:hover,
+.calendar-day:hover,
+.time-grid-day-head:hover {
+  background: var(--card-hover-bg);
+  border-color: var(--card-hover-border);
+  box-shadow: var(--card-hover-shadow);
 }
+
+.mail-card.selected:hover,
+.ui-list-row.selected:hover {
+  background: var(--card-selected-hover-bg);
+  border-color: var(--card-selected-hover-border);
+}
+
+.calendar-day.current:hover,
+.calendar-day.focused:hover,
+.time-grid-day-head.current:hover,
+.time-grid-day-head.focused:hover {
+  background: var(--pink-soft);
+  border-color: var(--pink);
+  box-shadow: var(--card-hover-shadow);
+  color: #ff9ac5;
+  filter: none;
+}
+
+.calendar-pill:hover,
+.time-event:hover {
+  filter: brightness(1.1);
+  outline: 1px solid var(--chip-hover-outline);
+}
+
+.year-day:hover {
+  background: var(--surface-hover);
+}
+
+.year-day.current:hover,
+.year-day.focused:hover {
+  background: var(--pink-soft);
+  color: #ff9ac5;
+  filter: none;
+}
+
 .ui-list-row.selected {
   background: #281125;
   border-color: #e60062;
@@ -101,10 +142,10 @@
   align-items: flex-start;
   background: var(--panel-raised);
   border: 1px solid var(--card-border);
-  border-radius: 28px;
+  border-radius: 22px;
   display: flex;
-  gap: 15px;
-  padding: 20px 17px;
+  gap: 12px;
+  padding: 14px;
 }
 .ui-skeleton-avatar {
   border-radius: 50%;
@@ -430,6 +471,19 @@
 .theme-light .ui-list-row.selected {
   background: #fff0f6;
   border-color: #ff4e91;
+}
+.theme-light .mail-card.selected,
+.theme-light .ui-list-row.selected {
+  background: #fff0f6;
+  border-color: #ff4e91;
+}
+.theme-light .calendar-day.current:hover,
+.theme-light .calendar-day.focused:hover,
+.theme-light .time-grid-day-head.current:hover,
+.theme-light .time-grid-day-head.focused:hover,
+.theme-light .year-day.current:hover,
+.theme-light .year-day.focused:hover {
+  color: #c5155b;
 }
 .theme-light .ui-skeleton {
   background: linear-gradient(90deg, #e8edf4 0%, #f4f7fb 50%, #e8edf4 100%);

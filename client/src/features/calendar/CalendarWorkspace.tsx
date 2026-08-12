@@ -17,6 +17,7 @@ import {
   useCalendarUiStore,
   type CalendarViewMode,
 } from '../../stores/calendarUiStore'
+import { useShellStore } from '../../stores/shellStore'
 import './calendar.css'
 
 const viewIcons: Record<CalendarViewMode, typeof CalendarDays> = {
@@ -96,6 +97,8 @@ export function CalendarWorkspace() {
     if (viewMode === 'year') setViewMode('day')
   }
 
+  const sidebarCollapsed = useShellStore((state) => state.sidebarCollapsed)
+
   return (
     <AppShell
       workspaceClassName="workspace-inbox product-calendar"
@@ -107,6 +110,7 @@ export function CalendarWorkspace() {
               <button
                 key={id}
                 className={viewMode === id ? 'folder-item active' : 'folder-item'}
+                title={sidebarCollapsed ? label : undefined}
                 type="button"
                 onClick={() => setViewMode(id)}
               >
@@ -116,11 +120,11 @@ export function CalendarWorkspace() {
             )
           })}
           <div className="sidebar-section">
-            <button className="folder-item" type="button">
+            <button className="folder-item" title={sidebarCollapsed ? 'Team' : undefined} type="button">
               <Users size={18} strokeWidth={1.75} />
               <span>Team</span>
             </button>
-            <button className="folder-item" type="button">
+            <button className="folder-item" title={sidebarCollapsed ? 'Rooms' : undefined} type="button">
               <MapPin size={18} strokeWidth={1.75} />
               <span>Rooms</span>
             </button>
