@@ -9,6 +9,7 @@ import { SkeletonRow } from '../../components/ui/skeleton'
 import { Button } from '../../components/ui/button'
 import { calendarQueries } from './queries'
 import { DayView, FourWeekView, MonthView, WeekView, YearView } from './CalendarViews'
+import { EventFormPanel } from './EventFormPanel'
 import { EventAgenda, EventDetail } from './EventWidgets'
 import { eventsForDate, eventsForDates } from '../../data/mockCalendar'
 import {
@@ -42,6 +43,8 @@ export function CalendarWorkspace() {
   const setFocusDate = useCalendarUiStore((state) => state.setFocusDate)
   const selectedEventId = useCalendarUiStore((state) => state.selectedEventId)
   const setSelectedEventId = useCalendarUiStore((state) => state.setSelectedEventId)
+  const createOpen = useCalendarUiStore((state) => state.createOpen)
+  const setCreateOpen = useCalendarUiStore((state) => state.setCreateOpen)
 
   const selected = data?.events.find((event) => event.id === selectedEventId) ?? data?.events[0]
 
@@ -174,6 +177,15 @@ export function CalendarWorkspace() {
                   >
                     Today
                   </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setCreateOpen(true)
+                      if (viewMode === 'year') setViewMode('day')
+                    }}
+                  >
+                    New event
+                  </Button>
                 </Toolbar>
               }
             >
@@ -230,9 +242,13 @@ export function CalendarWorkspace() {
                     selectedId={selected?.id}
                     onSelect={setSelectedEventId}
                   />
-                  <section className="calendar-detail reader-panel">
-                    <EventDetail event={selected} />
-                  </section>
+                  {createOpen ? (
+                    <EventFormPanel />
+                  ) : (
+                    <section className="calendar-detail reader-panel">
+                      <EventDetail event={selected} />
+                    </section>
+                  )}
                 </div>
               ) : null}
             </Panel>

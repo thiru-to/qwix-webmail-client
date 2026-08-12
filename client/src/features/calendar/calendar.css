@@ -148,6 +148,46 @@
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
 }
 
+.calendar-split .calendar-event-form-panel {
+  border: 1px solid var(--card-border);
+  border-radius: 22px;
+  min-height: 420px;
+}
+
+.calendar-event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.calendar-event-time-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.calendar-event-form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.calendar-event-form-actions .ui-button {
+  gap: 8px;
+}
+
+.calendar-event-form-actions .ui-button:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.calendar-event-form-error {
+  color: #ff9ac5;
+  font-size: 13px;
+  margin: 0;
+}
+
 .calendar-event-row {
   grid-template-columns: 18px minmax(0, 1fr);
 }
@@ -405,5 +445,11 @@
   .view-switcher {
     width: 100%;
     overflow-x: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .calendar-event-time-fields {
+    grid-template-columns: 1fr;
   }
 }
