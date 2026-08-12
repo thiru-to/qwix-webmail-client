@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -13,18 +13,20 @@ type SidePanelProps = {
 }
 
 export function SidePanel({ open, onClose, title, eyebrow, children, footer, className }: SidePanelProps) {
+  const titleId = useId()
+
   if (!open) return null
   return (
     <section
       className={cn('ui-side-panel reader-panel', className)}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="side-panel-title"
+      aria-labelledby={titleId}
     >
       <div className="ui-side-panel-header">
         <div>
           {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
-          <h2 id="side-panel-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
         </div>
         <button type="button" className="close-dialog" aria-label="Close panel" onClick={onClose}>
           <X size={18} strokeWidth={1.75} />

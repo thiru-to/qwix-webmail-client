@@ -7,10 +7,11 @@ type ChipInputProps = {
   value: string[]
   onChange: (next: string[]) => void
   placeholder?: string
+  label?: string
   className?: string
 }
 
-export function ChipInput({ id, value, onChange, placeholder, className }: ChipInputProps) {
+export function ChipInput({ id, value, onChange, placeholder, label, className }: ChipInputProps) {
   const [draft, setDraft] = useState('')
 
   function commit(raw: string) {
@@ -41,6 +42,7 @@ export function ChipInput({ id, value, onChange, placeholder, className }: ChipI
           <button
             type="button"
             aria-label={`Remove ${chip}`}
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => onChange(value.filter((item) => item !== chip))}
           >
             <X size={12} strokeWidth={1.75} />
@@ -50,6 +52,7 @@ export function ChipInput({ id, value, onChange, placeholder, className }: ChipI
       <input
         id={id}
         value={draft}
+        aria-label={label}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={onKeyDown}
         onBlur={() => commit(draft)}
