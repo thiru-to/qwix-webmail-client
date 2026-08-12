@@ -1,44 +1,11 @@
-import {
-  appendCalendarEvent,
-  buildCalendarEvent,
-  calendarData,
-  type CalendarData,
-  type EventTone,
-} from '../data/mockCalendar'
-import { delay, maybeFail } from './client'
+import type { CalendarEventItem, EventInput, EventsResponse, EventUpdate } from '@api/types'
+import { request } from './client'
 
-export type CreateEventInput = {
-  title: string
-  date: string
-  startMinutes: number
-  endMinutes: number
-  location: string
-  attendees: string[]
-  notes?: string
-  tone: EventTone
-}
+export const fetchEvents = (start: string, end: string) =>
+  request<EventsResponse>(`/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
 
-export async function fetchCalendar(): Promise<CalendarData> {
-  await delay()
-  await maybeFail('calendar')
-  return calendarData
-}
+export const createEvent = (input: EventInput) =>
+  request<CalendarEventItem>('/calendar/events', { method: 'POST', body: input })
 
-export async function createEvent(input: CreateEventInput) {
-  await delay()
-  await maybeFail('createEvent')
-  const event = appendCalendarEvent(
-    buildCalendarEvent({
-      id: `event-${Date.now()}`,
-      title: input.title.trim(),
-      date: input.date,
-      startMinutes: input.startMinutes,
-      endMinutes: input.endMinutes,
-      location: input.location.trim() || 'TBD',
-      tone: input.tone,
-      attendees: input.attendees,
-      notes: input.notes?.trim() || undefined,
-    }),
-  )
-  return event
-}
+export const updateEvent = (input: EventUpdate) =>
+  request<CalendarEventItem>('/calendar/events', { method: 'PUT', body: input })

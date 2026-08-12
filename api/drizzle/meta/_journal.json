@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786524271992,
+      "tag": "0000_polite_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786527166664,
+      "tag": "0001_dark_black_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786528539082,
+      "tag": "0002_fine_galactus",
+      "breakpoints": true
+    }
+  ]
+}

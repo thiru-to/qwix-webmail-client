@@ -1,0 +1,304 @@
+Commits:
+0adc416 fix: clear corrected create-form validation errors
+
+Stat:
+ client/.superpowers/sdd/task-7-report.md          | 25 ++++++++++++++++++
+ client/src/features/calendar/EventFormPanel.tsx   | 20 +++++++++++---
+ client/src/features/contacts/ContactFormPanel.tsx | 10 +++++--
+ client/src/features/mail/ComposeDialog.tsx        | 32 ++++++++++++++++-------
+ 4 files changed, 72 insertions(+), 15 deletions(-)
+
+diff --git a/client/.superpowers/sdd/task-7-report.md b/client/.superpowers/sdd/task-7-report.md
+new file mode 100644
+index 0000000..f0e4273
+--- /dev/null
++++ b/client/.superpowers/sdd/task-7-report.md
+@@ -0,0 +1,25 @@
++# Task 7 Report: End-to-end polish pass
++
++## Checklist results
++
++- **Mail compose:** Passed. Toolbar Compose opened, empty submit showed required-field validation, completed submit switched to Sent, incremented its count, and selected the new message. Cc, Bcc, and attachments flowed through the create mutation; attachments rendered in the selected message detail.
++- **Calendar event:** Passed. New event inherited the focused `2026-08-14` date, saved into the month grid/agenda, became selected, and rendered both attendees in detail. The selected purple tone was included in the create payload.
++- **Contact:** Passed. New contact saved into the list, became selected, and rendered its full detail. The selected green avatar tone was included in the create payload.
++- **Forced failure/retry:** Passed. With `globalThis.__QWIX_API_FAIL__ = true`, contact save rendered `Mock createContact request failed` inline while preserving every field. Clearing the flag and retrying succeeded.
++- **Visual/theme review:** Passed. Compose and side-panel forms were inspected in dark and light themes. Shared spacing, control tokens, footer chrome, focus rings, and panel scrolling matched the surrounding detail chrome.
++- **Round-trip fields:** Passed by browser output plus create-path inspection. Attendees and attachments rendered after save; Cc/Bcc, attendees, attachments, and tone values are passed unchanged into their mock API records.
++
++## Polish fixes
++
++- Required-field errors now clear immediately when the corresponding value is corrected in Compose, New event, and New contact.
++- Compose now resets its local form and mutation state on discard and after a successful send without a state-reset effect.
++
++## Verification
++
++- `pnpm build` — passed.
++- `pnpm lint` — passed.
++- Browser smoke checks — passed in Chrome DevTools against `http://127.0.0.1:5173/`.
++
++## Concerns
++
++- None blocking. The optional mock-mail assertion cleanup and filtered-contact selection behavior were left unchanged because neither affected the create-flow checklist.
+diff --git a/client/src/features/calendar/EventFormPanel.tsx b/client/src/features/calendar/EventFormPanel.tsx
+index 4c974b8..8f891b2 100644
+--- a/client/src/features/calendar/EventFormPanel.tsx
++++ b/client/src/features/calendar/EventFormPanel.tsx
+@@ -98,47 +98,59 @@ export function EventFormPanel() {
+       <form
+         id="event-create-form"
+         className="calendar-event-form"
+         onSubmit={(event) => void handleSubmit(event)}
+       >
+         <FormField label="Title" htmlFor="event-title" error={validation.title}>
+           <Input
+             id="event-title"
+             autoFocus
+             value={title}
+-            onChange={(event) => setTitle(event.target.value)}
++            onChange={(event) => {
++              setTitle(event.target.value)
++              setValidation((current) => ({ ...current, title: undefined }))
++            }}
+             placeholder="Event title"
+           />
+         </FormField>
+         <FormField label="Date" htmlFor="event-date" error={validation.date}>
+           <Input
+             id="event-date"
+             type="date"
+             value={date}
+-            onChange={(event) => setDate(event.target.value)}
++            onChange={(event) => {
++              setDate(event.target.value)
++              setValidation((current) => ({ ...current, date: undefined }))
++            }}
+           />
+         </FormField>
+         <div className="calendar-event-time-fields">
+           <FormField label="Starts" htmlFor="event-start">
+             <Input
+               id="event-start"
+               type="time"
+               value={minutesToTimeInput(startMinutes)}
+-              onChange={(event) => setStartMinutes(parseTimeToMinutes(event.target.value))}
++              onChange={(event) => {
++                setStartMinutes(parseTimeToMinutes(event.target.value))
++                setValidation((current) => ({ ...current, endMinutes: undefined }))
++              }}
+             />
+           </FormField>
+           <FormField label="Ends" htmlFor="event-end" error={validation.endMinutes}>
+             <Input
+               id="event-end"
+               type="time"
+               value={minutesToTimeInput(endMinutes)}
+-              onChange={(event) => setEndMinutes(parseTimeToMinutes(event.target.value))}
++              onChange={(event) => {
++                setEndMinutes(parseTimeToMinutes(event.target.value))
++                setValidation((current) => ({ ...current, endMinutes: undefined }))
++              }}
+             />
+           </FormField>
+         </div>
+         <FormField label="Location" htmlFor="event-location">
+           <Input
+             id="event-location"
+             value={location}
+             onChange={(event) => setLocation(event.target.value)}
+             placeholder="Room or video link"
+           />
+diff --git a/client/src/features/contacts/ContactFormPanel.tsx b/client/src/features/contacts/ContactFormPanel.tsx
+index df5a4f1..cf1a4f9 100644
+--- a/client/src/features/contacts/ContactFormPanel.tsx
++++ b/client/src/features/contacts/ContactFormPanel.tsx
+@@ -75,30 +75,36 @@ export function ContactFormPanel() {
+       <form
+         id="contact-create-form"
+         className="contact-form"
+         onSubmit={(event) => void handleSubmit(event)}
+       >
+         <FormField label="Name" htmlFor="contact-name" error={validation.name}>
+           <Input
+             id="contact-name"
+             autoFocus
+             value={name}
+-            onChange={(event) => setName(event.target.value)}
++            onChange={(event) => {
++              setName(event.target.value)
++              setValidation((current) => ({ ...current, name: undefined }))
++            }}
+             placeholder="Full name"
+           />
+         </FormField>
+         <FormField label="Email" htmlFor="contact-email" error={validation.email}>
+           <Input
+             id="contact-email"
+             type="email"
+             value={email}
+-            onChange={(event) => setEmail(event.target.value)}
++            onChange={(event) => {
++              setEmail(event.target.value)
++              setValidation((current) => ({ ...current, email: undefined }))
++            }}
+             placeholder="name@example.com"
+           />
+         </FormField>
+         <FormField label="Phone" htmlFor="contact-phone">
+           <Input
+             id="contact-phone"
+             type="tel"
+             value={phone}
+             onChange={(event) => setPhone(event.target.value)}
+             placeholder="+1 555 0100"
+diff --git a/client/src/features/mail/ComposeDialog.tsx b/client/src/features/mail/ComposeDialog.tsx
+index 347b1c5..1359d59 100644
+--- a/client/src/features/mail/ComposeDialog.tsx
++++ b/client/src/features/mail/ComposeDialog.tsx
+@@ -1,11 +1,11 @@
+-import { useEffect, useState, type FormEvent } from 'react'
++import { useState, type FormEvent } from 'react'
+ import { Send } from 'lucide-react'
+ import { Button } from '../../components/ui/button'
+ import { ChipInput } from '../../components/ui/chip-input'
+ import { Dialog } from '../../components/ui/dialog'
+ import { FormField } from '../../components/ui/form-field'
+ import { Input } from '../../components/ui/input'
+ import { Spinner } from '../../components/ui/spinner'
+ import { TextArea } from '../../components/ui/textarea'
+ import { useCreateMessage } from './mutations'
+ 
+@@ -19,31 +19,35 @@ type ValidationErrors = Partial<Record<'to' | 'subject' | 'body', string>>
+ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
+   const [to, setTo] = useState('')
+   const [cc, setCc] = useState<string[]>([])
+   const [bcc, setBcc] = useState<string[]>([])
+   const [subject, setSubject] = useState('')
+   const [body, setBody] = useState('')
+   const [attachments, setAttachments] = useState<string[]>([])
+   const [validation, setValidation] = useState<ValidationErrors>({})
+   const { mutateAsync, isPending, error, reset } = useCreateMessage()
+ 
+-  useEffect(() => {
+-    if (open) return
++  function resetForm() {
+     setTo('')
+     setCc([])
+     setBcc([])
+     setSubject('')
+     setBody('')
+     setAttachments([])
+     setValidation({})
+     reset()
+-  }, [open, reset])
++  }
++
++  function closeDialog() {
++    resetForm()
++    onClose()
++  }
+ 
+   async function handleSend(event: FormEvent<HTMLFormElement>) {
+     event.preventDefault()
+     const nextValidation: ValidationErrors = {
+       ...(!to.trim() && { to: 'Add at least one recipient.' }),
+       ...(!subject.trim() && { subject: 'Add a subject.' }),
+       ...(!body.trim() && { body: 'Write a message.' }),
+     }
+ 
+     setValidation(nextValidation)
+@@ -53,50 +57,54 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
+ 
+     try {
+       await mutateAsync({
+         to: to.trim(),
+         cc: cc.length ? cc : undefined,
+         bcc: bcc.length ? bcc : undefined,
+         subject,
+         body,
+         attachments: attachments.length ? attachments : undefined,
+       })
++      resetForm()
+     } catch {
+       // The mutation error is rendered inline below the form.
+     }
+   }
+ 
+   return (
+     <Dialog
+       open={open}
+-      onClose={onClose}
++      onClose={closeDialog}
+       eyebrow="New message"
+       title="Compose"
+       footer={
+         <div className="ui-dialog-footer">
+           <Button type="submit" form="compose-form" disabled={isPending}>
+             {isPending ? <Spinner size={14} /> : null}
+             Send <Send size={15} strokeWidth={1.75} />
+           </Button>
+-          <Button type="button" variant="ghost" onClick={onClose}>
++          <Button type="button" variant="ghost" onClick={closeDialog}>
+             Discard
+           </Button>
+         </div>
+       }
+     >
+       <form id="compose-form" className="compose-form" onSubmit={(event) => void handleSend(event)}>
+         <FormField label="To" htmlFor="compose-to" error={validation.to}>
+           <Input
+             id="compose-to"
+             placeholder="name@example.com"
+             value={to}
+-            onChange={(event) => setTo(event.target.value)}
++            onChange={(event) => {
++              setTo(event.target.value)
++              setValidation((current) => ({ ...current, to: undefined }))
++            }}
+           />
+         </FormField>
+         <FormField label="Cc" htmlFor="compose-cc">
+           <ChipInput
+             id="compose-cc"
+             label="Cc recipients"
+             value={cc}
+             onChange={setCc}
+             placeholder="Add recipient and press Enter"
+           />
+@@ -108,29 +116,35 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
+             value={bcc}
+             onChange={setBcc}
+             placeholder="Add recipient and press Enter"
+           />
+         </FormField>
+         <FormField label="Subject" htmlFor="compose-subject" error={validation.subject}>
+           <Input
+             id="compose-subject"
+             placeholder="Subject"
+             value={subject}
+-            onChange={(event) => setSubject(event.target.value)}
++            onChange={(event) => {
++              setSubject(event.target.value)
++              setValidation((current) => ({ ...current, subject: undefined }))
++            }}
+           />
+         </FormField>
+         <FormField label="Message" htmlFor="compose-body" error={validation.body}>
+           <TextArea
+             id="compose-body"
+             placeholder="Write your message…"
+             value={body}
+-            onChange={(event) => setBody(event.target.value)}
++            onChange={(event) => {
++              setBody(event.target.value)
++              setValidation((current) => ({ ...current, body: undefined }))
++            }}
+           />
+         </FormField>
+         <FormField label="Attachments" htmlFor="compose-attachments">
+           <ChipInput
+             id="compose-attachments"
+             label="Attachments"
+             value={attachments}
+             onChange={setAttachments}
+             placeholder="Add filename and press Enter"
+           />

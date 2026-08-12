@@ -1,13 +1,19 @@
-import type { CalendarEvent } from '../../data/mockCalendar'
+import type { Attendee } from '@api/types'
+import { MapPin, Pencil, Repeat } from 'lucide-react'
+import { Button } from '../../components/ui/button'
 import { List, ListRow } from '../../components/ui/list'
-import { MapPin } from 'lucide-react'
+import { LabelChips } from '../labels/LabelChips'
+import { LabelPicker } from '../labels/LabelPicker'
+import type { EventView } from '../../lib/calendar'
+
+const attendeeLabel = (attendee: Attendee) => attendee.name ?? attendee.email ?? 'Unknown'
 
 export function EventRow({
   event,
   selected,
   onSelect,
 }: {
-  event: CalendarEvent
+  event: EventView
   selected: boolean
   onSelect: () => void
 }) {
@@ -19,33 +25,58 @@ export function EventRow({
       leading={<span className={`event-dot ${event.tone}`} />}
     >
       <div className="mail-card-topline">
-        <h2>{event.title}</h2>
-        <time>{event.day}</time>
+        <h2>{event.title || '(untitled)'}</h2>
+        <time>{event.dayLabel}</time>
       </div>
-      <p>{event.time}</p>
-      <div className="sender-name">{event.location}</div>
+      <p>{event.timeLabel}</p>
+      <div className="sender-name">{event.location ?? ''}</div>
     </ListRow>
   )
 }
 
-export function EventDetail({ event }: { event?: CalendarEvent }) {
+export function EventDetail({ event, onEdit }: { event?: EventView; onEdit?: () => void }) {
   if (!event) {
     return <p className="loading-state">Select an event to preview it.</p>
   }
 
   return (
     <>
-      <div className="eyebrow">{event.day}</div>
-      <h2>{event.title}</h2>
-      <p className="calendar-detail-meta">{event.time}</p>
-      <p className="calendar-detail-meta">
-        <MapPin size={14} strokeWidth={1.75} /> {event.location}
-      </p>
-      <div className="calendar-attendees">
-        {event.attendees.map((person) => (
-          <span key={person}>{person}</span>
-        ))}
+      <div className="calendar-detail-head">
+        <div>
+          <div className="eyebrow">{event.dayLabel}</div>
+          <h2>{event.title || '(untitled)'}</h2>
+        </div>
+        {onEdit ? (
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            <Pencil size={15} strokeWidth={1.75} /> Edit
+          </Button>
+        ) : null}
       </div>
+      <p className="calendar-detail-meta">
+        {event.timeLabel}
+        {event.recurring ? <Repeat size={14} strokeWidth={1.75} /> : null}
+      </p>
+      {event.location ? (
+        <p className="calendar-detail-meta">
+          <MapPin size={14} strokeWidth={1.75} /> {event.location}
+        </p>
+      ) : null}
+      {event.attendees.length ? (
+        <div className="calendar-attendees">
+          {event.attendees.map((attendee) => (
+            <span key={attendee.email ?? attendeeLabel(attendee)}>{attendeeLabel(attendee)}</span>
+          ))}
+        </div>
+      ) : null}
+      <div className="detail-labels">
+        <LabelPicker kind="event" resourceId={event.id} active={event.labelIds} />
+        <LabelChips ids={event.labelIds} />
+      </div>
+      {event.description ? (
+        <div className="message-body">
+          <p>{event.description}</p>
+        </div>
+      ) : null}
     </>
   )
 }
@@ -55,7 +86,7 @@ export function EventAgenda({
   selectedId,
   onSelect,
 }: {
-  events: CalendarEvent[]
+  events: EventView[]
   selectedId?: string
   onSelect: (id: string) => void
 }) {

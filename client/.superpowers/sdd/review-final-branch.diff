@@ -1,0 +1,2207 @@
+Commits:
+0adc416 fix: clear corrected create-form validation errors
+0f144f6 fix: resolve contact selection from full list after create
+9644d90 feat: add New Contact side panel with mock API persistence
+7298085 feat: add New Event side panel with mock API persistence
+e77a89c fix: route mail UI type imports through api/mail
+5ac1c5a feat: polish Compose and persist sent messages via mock API
+d2a8a0d fix: remove out-of-scope sidebar changes from ContactsWorkspace
+13239c0 feat: add createOpen UI state for calendar and contacts
+4ebb8eb fix: address Task 2 review findings for ChipInput and SidePanel
+d79e3db feat: add shared form kit, SidePanel, and polished Dialog
+ecae8dd feat: add mock create APIs for mail, events, and contacts
+
+Stat:
+ client/.superpowers/sdd/task-7-report.md           |  25 ++
+ client/src/App.css                                 |  24 --
+ client/src/api/calendar.ts                         |  38 ++-
+ client/src/api/contacts.ts                         |  36 ++-
+ client/src/api/mail.ts                             |  48 +++-
+ client/src/components/ui/chip-input.tsx            |  63 +++++
+ client/src/components/ui/dialog.tsx                |   6 +-
+ client/src/components/ui/form-field.tsx            |  20 ++
+ client/src/components/ui/side-panel.tsx            |  39 +++
+ client/src/components/ui/textarea.tsx              |   6 +
+ client/src/components/ui/tone-picker.tsx           |  27 ++
+ client/src/components/ui/ui.css                    | 281 +++++++++++++++++++++
+ client/src/data/mockCalendar.ts                    |  48 ++++
+ client/src/data/mockContacts.ts                    |  12 +
+ client/src/data/mockMail.ts                        |  13 +-
+ client/src/features/calendar/CalendarWorkspace.tsx |  22 +-
+ client/src/features/calendar/EventFormPanel.tsx    | 191 ++++++++++++++
+ client/src/features/calendar/calendar.css          |  46 ++++
+ client/src/features/calendar/mutations.ts          |  19 ++
+ client/src/features/contacts/ContactFormPanel.tsx  | 155 ++++++++++++
+ client/src/features/contacts/ContactsWorkspace.tsx |  81 +++---
+ client/src/features/contacts/contacts.css          |  46 ++++
+ client/src/features/contacts/mutations.ts          |  19 ++
+ client/src/features/mail/ComposeDialog.tsx         | 158 +++++++++---
+ client/src/features/mail/MailCard.tsx              |   2 +-
+ client/src/features/mail/MailWorkspace.tsx         |  12 +-
+ client/src/features/mail/MessageList.tsx           |  15 +-
+ client/src/features/mail/ReaderPanel.tsx           |   2 +-
+ client/src/features/mail/mail.css                  |  15 +-
+ client/src/features/mail/mutations.ts              |  21 ++
+ client/src/stores/calendarUiStore.ts               |   4 +
+ client/src/stores/contactsUiStore.ts               |  15 ++
+ 32 files changed, 1389 insertions(+), 120 deletions(-)
+
+diff --git a/client/.superpowers/sdd/task-7-report.md b/client/.superpowers/sdd/task-7-report.md
+new file mode 100644
+index 0000000..f0e4273
+--- /dev/null
++++ b/client/.superpowers/sdd/task-7-report.md
+@@ -0,0 +1,25 @@
++# Task 7 Report: End-to-end polish pass
++
++## Checklist results
++
++- **Mail compose:** Passed. Toolbar Compose opened, empty submit showed required-field validation, completed submit switched to Sent, incremented its count, and selected the new message. Cc, Bcc, and attachments flowed through the create mutation; attachments rendered in the selected message detail.
++- **Calendar event:** Passed. New event inherited the focused `2026-08-14` date, saved into the month grid/agenda, became selected, and rendered both attendees in detail. The selected purple tone was included in the create payload.
++- **Contact:** Passed. New contact saved into the list, became selected, and rendered its full detail. The selected green avatar tone was included in the create payload.
++- **Forced failure/retry:** Passed. With `globalThis.__QWIX_API_FAIL__ = true`, contact save rendered `Mock createContact request failed` inline while preserving every field. Clearing the flag and retrying succeeded.
++- **Visual/theme review:** Passed. Compose and side-panel forms were inspected in dark and light themes. Shared spacing, control tokens, footer chrome, focus rings, and panel scrolling matched the surrounding detail chrome.
++- **Round-trip fields:** Passed by browser output plus create-path inspection. Attendees and attachments rendered after save; Cc/Bcc, attendees, attachments, and tone values are passed unchanged into their mock API records.
++
++## Polish fixes
++
++- Required-field errors now clear immediately when the corresponding value is corrected in Compose, New event, and New contact.
++- Compose now resets its local form and mutation state on discard and after a successful send without a state-reset effect.
++
++## Verification
++
++- `pnpm build` — passed.
++- `pnpm lint` — passed.
++- Browser smoke checks — passed in Chrome DevTools against `http://127.0.0.1:5173/`.
++
++## Concerns
++
++- None blocking. The optional mock-mail assertion cleanup and filtered-contact selection behavior were left unchanged because neither affected the create-flow checklist.
+diff --git a/client/src/App.css b/client/src/App.css
+index f493c43..e349c8f 100644
+--- a/client/src/App.css
++++ b/client/src/App.css
+@@ -464,31 +464,10 @@
+ .reply-placeholder { color: #b3bac6; font-size: 15px; padding-top: 15px; }
+ .empty-reader { align-items: center; color: #8290a4; display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+ .reader-label { cursor: pointer; transition: filter .18s ease, opacity .18s ease; }
+ .reader-label:hover { filter: brightness(1.08); opacity: .92; }
+ 
+-.compose-backdrop { align-items: center; background: #03060bbd; display: flex; inset: 0; justify-content: center; padding: 24px; position: fixed; z-index: 10; }
+-.compose-dialog { background: #182231; border: 1px solid #3b4a62; border-radius: 24px; box-shadow: 0 25px 80px #0009; display: flex; flex-direction: column; gap: 12px; max-width: 540px; padding: 24px; width: 100%; }
+-.compose-header { align-items: flex-start; display: flex; justify-content: space-between; margin-bottom: 7px; }
+-.compose-header h2 { font-size: 25px; letter-spacing: -.03em; margin: 5px 0 0; }
+-.close-dialog, .discard-button { background: transparent; border: 0; color: #8492a7; }
+-.close-dialog { align-items: center; border-radius: 9px; display: flex; padding: 8px; transition: background .18s ease, color .18s ease; }
+-.close-dialog:hover { background: #26344a; color: white; }
+-.discard-button {
+-  border-radius: 10px;
+-  padding: 8px 10px;
+-  transition: background .18s ease, color .18s ease;
+-}
+-.discard-button:hover { background: #26344a; color: white; }
+-.compose-dialog .ui-input { background: #111925; border: 1px solid #2c3b51; border-radius: 11px; min-height: 45px; padding: 0 13px; }
+-.compose-dialog textarea { background: #111925; border: 1px solid #2c3b51; border-radius: 11px; color: #f3f4f7; min-height: 180px; outline: 0; padding: 14px; resize: vertical; }
+-.compose-dialog textarea::placeholder { color: #738198; }
+-.compose-dialog textarea:focus, .compose-dialog .ui-input:focus { border-color: #e83c80; box-shadow: 0 0 0 3px #e83c8030; }
+-.compose-footer { align-items: center; display: flex; gap: 19px; margin-top: 6px; }
+-.send-button { align-items: center; background: var(--pink); border: 0; border-radius: 20px; color: white; display: flex; font-weight: 600; gap: 8px; padding: 10px 16px; transition: background .18s ease, transform .18s ease; }
+-.send-button:hover { background: #ff3e82; transform: translateY(-1px); }
+-
+ .theme-light .product-nav, .theme-light .search-box, .theme-light .filter-button, .theme-light .layout-switcher { background: #f3f6fa; border-color: #dbe2ec; }
+ .theme-light .product-tab { color: #66758b; }
+ .theme-light .product-tab:hover { background: #e9eef5; color: #172033; }
+ .theme-light .sidebar-dock { border-color: #e1e6ee; }
+ .theme-light .layout-option { color: #718096; }
+@@ -544,13 +523,10 @@
+ .theme-light .reply-box, .theme-light .attachment-chip { background: #f5f7fa; border-color: #dce3ed; }
+ .theme-light .attachment-chip:hover { background: #eef2f7; border-color: #b8c5d6; }
+ .theme-light .reply-placeholder { color: #5f6d81; }
+ .theme-light .recipient-badge { background: #ffe4ef; color: #c5155b; }
+ .theme-light .recipient-badge:hover { background: #ffd3e3; color: #a9104c; }
+-.theme-light .compose-dialog { background: #ffffff; border-color: #dae2ed; }
+-.theme-light .compose-dialog .ui-input, .theme-light .compose-dialog textarea { background: #f7f9fb; border-color: #dbe3ed; color: #172033; }
+-.theme-light .close-dialog:hover, .theme-light .discard-button:hover { background: #eef2f7; color: #172033; }
+ .theme-light .sender-avatar.rose { background: #ffe0ec; color: #d3186a; }
+ .theme-light .sender-avatar.plum { background: #f8dff0; color: #c2187a; }
+ .theme-light .sender-avatar.green { background: #d8f7ef; color: #0f8f73; }
+ .theme-light .sender-avatar.orange { background: #ffe8cc; color: #c77800; }
+ .theme-light .sender-avatar.purple { background: #ece3ff; color: #6f4ad4; }
+diff --git a/client/src/api/calendar.ts b/client/src/api/calendar.ts
+index 88ccac8..12d495b 100644
+--- a/client/src/api/calendar.ts
++++ b/client/src/api/calendar.ts
+@@ -1,8 +1,44 @@
+-import { calendarData, type CalendarData } from '../data/mockCalendar'
++import {
++  appendCalendarEvent,
++  buildCalendarEvent,
++  calendarData,
++  type CalendarData,
++  type EventTone,
++} from '../data/mockCalendar'
+ import { delay, maybeFail } from './client'
+ 
++export type CreateEventInput = {
++  title: string
++  date: string
++  startMinutes: number
++  endMinutes: number
++  location: string
++  attendees: string[]
++  notes?: string
++  tone: EventTone
++}
++
+ export async function fetchCalendar(): Promise<CalendarData> {
+   await delay()
+   await maybeFail('calendar')
+   return calendarData
+ }
++
++export async function createEvent(input: CreateEventInput) {
++  await delay()
++  await maybeFail('createEvent')
++  const event = appendCalendarEvent(
++    buildCalendarEvent({
++      id: `event-${Date.now()}`,
++      title: input.title.trim(),
++      date: input.date,
++      startMinutes: input.startMinutes,
++      endMinutes: input.endMinutes,
++      location: input.location.trim() || 'TBD',
++      tone: input.tone,
++      attendees: input.attendees,
++      notes: input.notes?.trim() || undefined,
++    }),
++  )
++  return event
++}
+diff --git a/client/src/api/contacts.ts b/client/src/api/contacts.ts
+index 66f7147..d7084c6 100644
+--- a/client/src/api/contacts.ts
++++ b/client/src/api/contacts.ts
+@@ -1,8 +1,42 @@
+-import { contactsData, type ContactsData } from '../data/mockContacts'
++import {
++  appendContact,
++  contactsData,
++  initialsFromName,
++  type Contact,
++  type ContactsData,
++} from '../data/mockContacts'
+ import { delay, maybeFail } from './client'
+ 
++export type { Contact, ContactsData }
++
++export type CreateContactInput = {
++  name: string
++  email: string
++  phone: string
++  company: string
++  role: string
++  notes: string
++  avatarTone: Contact['avatarTone']
++}
++
+ export async function fetchContacts(): Promise<ContactsData> {
+   await delay()
+   await maybeFail('contacts')
+   return contactsData
+ }
++
++export async function createContact(input: CreateContactInput): Promise<Contact> {
++  await delay()
++  await maybeFail('createContact')
++  return appendContact({
++    id: `contact-${Date.now()}`,
++    name: input.name.trim(),
++    email: input.email.trim(),
++    phone: input.phone.trim(),
++    company: input.company.trim(),
++    role: input.role.trim(),
++    notes: input.notes.trim(),
++    avatarTone: input.avatarTone,
++    initials: initialsFromName(input.name),
++  })
++}
+diff --git a/client/src/api/mail.ts b/client/src/api/mail.ts
+index f59c991..29aad34 100644
+--- a/client/src/api/mail.ts
++++ b/client/src/api/mail.ts
+@@ -1,8 +1,52 @@
+-import { mailbox, type Mailbox } from '../data/mockMail'
++import { mailbox, type Mail } from '../data/mockMail'
+ import { delay, maybeFail } from './client'
+ 
+-export async function fetchMailbox(): Promise<Mailbox> {
++export type { Mail, Mailbox } from '../data/mockMail'
++
++export type CreateMessageInput = {
++  to: string
++  cc?: string[]
++  bcc?: string[]
++  subject: string
++  body: string
++  attachments?: string[]
++}
++
++export async function fetchMailbox() {
+   await delay()
+   await maybeFail('mailbox')
+   return mailbox
+ }
++
++export async function createMessage(input: CreateMessageInput): Promise<Mail> {
++  await delay()
++  await maybeFail('createMessage')
++  const now = new Date()
++  const bodyLines = input.body.split(/\n/).filter((line) => line.length > 0)
++  const message: Mail = {
++    id: `sent-${now.getTime()}`,
++    sender: mailbox.account.name,
++    email: mailbox.account.email,
++    initials: mailbox.account.name
++      .split(/\s+/)
++      .map((p) => p[0])
++      .join('')
++      .slice(0, 2)
++      .toUpperCase(),
++    avatarTone: 'plum',
++    subject: input.subject.trim(),
++    preview: input.body.trim().slice(0, 120),
++    time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
++    date: 'Today',
++    labels: [],
++    attachments: input.attachments?.length ? input.attachments : undefined,
++    body: bodyLines.length ? bodyLines : [input.body.trim()],
++    folder: 'Sent',
++    cc: input.cc?.length ? input.cc : undefined,
++    bcc: input.bcc?.length ? input.bcc : undefined,
++  }
++  mailbox.messages.unshift(message)
++  const sent = mailbox.folders.find((f) => f.name === 'Sent')
++  if (sent) sent.count += 1
++  return message
++}
+diff --git a/client/src/components/ui/chip-input.tsx b/client/src/components/ui/chip-input.tsx
+new file mode 100644
+index 0000000..4b36a84
+--- /dev/null
++++ b/client/src/components/ui/chip-input.tsx
+@@ -0,0 +1,63 @@
++import { useState, type KeyboardEvent } from 'react'
++import { X } from 'lucide-react'
++import { cn } from '../../lib/utils'
++
++type ChipInputProps = {
++  id?: string
++  value: string[]
++  onChange: (next: string[]) => void
++  placeholder?: string
++  label?: string
++  className?: string
++}
++
++export function ChipInput({ id, value, onChange, placeholder, label, className }: ChipInputProps) {
++  const [draft, setDraft] = useState('')
++
++  function commit(raw: string) {
++    const next = raw.trim()
++    if (!next || value.includes(next)) {
++      setDraft('')
++      return
++    }
++    onChange([...value, next])
++    setDraft('')
++  }
++
++  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
++    if (event.key === 'Enter' || event.key === ',') {
++      event.preventDefault()
++      commit(draft)
++    }
++    if (event.key === 'Backspace' && !draft && value.length) {
++      onChange(value.slice(0, -1))
++    }
++  }
++
++  return (
++    <div className={cn('ui-chip-input', className)}>
++      {value.map((chip) => (
++        <span key={chip} className="ui-chip">
++          {chip}
++          <button
++            type="button"
++            aria-label={`Remove ${chip}`}
++            onMouseDown={(event) => event.preventDefault()}
++            onClick={() => onChange(value.filter((item) => item !== chip))}
++          >
++            <X size={12} strokeWidth={1.75} />
++          </button>
++        </span>
++      ))}
++      <input
++        id={id}
++        value={draft}
++        aria-label={label}
++        onChange={(event) => setDraft(event.target.value)}
++        onKeyDown={onKeyDown}
++        onBlur={() => commit(draft)}
++        placeholder={value.length ? undefined : placeholder}
++      />
++    </div>
++  )
++}
+diff --git a/client/src/components/ui/dialog.tsx b/client/src/components/ui/dialog.tsx
+index d7cb4dd..fe1f188 100644
+--- a/client/src/components/ui/dialog.tsx
++++ b/client/src/components/ui/dialog.tsx
+@@ -14,19 +14,19 @@ type DialogProps = {
+ 
+ export function Dialog({ open, onClose, title, eyebrow, children, className, footer }: DialogProps) {
+   if (!open) return null
+ 
+   return (
+-    <div className="compose-backdrop" role="presentation" onMouseDown={onClose}>
++    <div className="ui-dialog-backdrop" role="presentation" onMouseDown={onClose}>
+       <section
+-        className={cn('compose-dialog', className)}
++        className={cn('ui-dialog', className)}
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="dialog-title"
+         onMouseDown={(event) => event.stopPropagation()}
+       >
+-        <div className="compose-header">
++        <div className="ui-dialog-header">
+           <div>
+             {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
+             <h2 id="dialog-title">{title}</h2>
+           </div>
+           <button aria-label="Close dialog" className="close-dialog" type="button" onClick={onClose}>
+diff --git a/client/src/components/ui/form-field.tsx b/client/src/components/ui/form-field.tsx
+new file mode 100644
+index 0000000..d8a6d28
+--- /dev/null
++++ b/client/src/components/ui/form-field.tsx
+@@ -0,0 +1,20 @@
++import type { ReactNode } from 'react'
++import { cn } from '../../lib/utils'
++
++type FormFieldProps = {
++  label: string
++  htmlFor: string
++  error?: string | null
++  children: ReactNode
++  className?: string
++}
++
++export function FormField({ label, htmlFor, error, children, className }: FormFieldProps) {
++  return (
++    <label className={cn('ui-form-field', className)} htmlFor={htmlFor}>
++      <span className="ui-form-label">{label}</span>
++      {children}
++      {error ? <span className="ui-form-error">{error}</span> : null}
++    </label>
++  )
++}
+diff --git a/client/src/components/ui/side-panel.tsx b/client/src/components/ui/side-panel.tsx
+new file mode 100644
+index 0000000..54b3cf8
+--- /dev/null
++++ b/client/src/components/ui/side-panel.tsx
+@@ -0,0 +1,39 @@
++import { useId, type ReactNode } from 'react'
++import { X } from 'lucide-react'
++import { cn } from '../../lib/utils'
++
++type SidePanelProps = {
++  open: boolean
++  onClose: () => void
++  title: string
++  eyebrow?: string
++  children: ReactNode
++  footer?: ReactNode
++  className?: string
++}
++
++export function SidePanel({ open, onClose, title, eyebrow, children, footer, className }: SidePanelProps) {
++  const titleId = useId()
++
++  if (!open) return null
++  return (
++    <section
++      className={cn('ui-side-panel reader-panel', className)}
++      role="dialog"
++      aria-modal="true"
++      aria-labelledby={titleId}
++    >
++      <div className="ui-side-panel-header">
++        <div>
++          {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
++          <h2 id={titleId}>{title}</h2>
++        </div>
++        <button type="button" className="close-dialog" aria-label="Close panel" onClick={onClose}>
++          <X size={18} strokeWidth={1.75} />
++        </button>
++      </div>
++      <div className="ui-side-panel-body">{children}</div>
++      {footer ? <div className="ui-side-panel-footer">{footer}</div> : null}
++    </section>
++  )
++}
+diff --git a/client/src/components/ui/textarea.tsx b/client/src/components/ui/textarea.tsx
+new file mode 100644
+index 0000000..8cfb384
+--- /dev/null
++++ b/client/src/components/ui/textarea.tsx
+@@ -0,0 +1,6 @@
++import type { TextareaHTMLAttributes } from 'react'
++import { cn } from '../../lib/utils'
++
++export function TextArea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
++  return <textarea className={cn('ui-textarea', className)} {...props} />
++}
+diff --git a/client/src/components/ui/tone-picker.tsx b/client/src/components/ui/tone-picker.tsx
+new file mode 100644
+index 0000000..d79b2cf
+--- /dev/null
++++ b/client/src/components/ui/tone-picker.tsx
+@@ -0,0 +1,27 @@
++import { cn } from '../../lib/utils'
++
++type ToneOption = { id: string; label: string }
++
++type TonePickerProps = {
++  value: string
++  onChange: (value: string) => void
++  options: ToneOption[]
++  label?: string
++}
++
++export function TonePicker({ value, onChange, options, label = 'Color' }: TonePickerProps) {
++  return (
++    <div className="ui-tone-picker" role="group" aria-label={label}>
++      {options.map((option) => (
++        <button
++          key={option.id}
++          type="button"
++          className={cn('ui-tone-swatch', `tone-${option.id}`, value === option.id && 'active')}
++          aria-pressed={value === option.id}
++          aria-label={option.label}
++          onClick={() => onChange(option.id)}
++        />
++      ))}
++    </div>
++  )
++}
+diff --git a/client/src/components/ui/ui.css b/client/src/components/ui/ui.css
+index 8899937..548f5fb 100644
+--- a/client/src/components/ui/ui.css
++++ b/client/src/components/ui/ui.css
+@@ -150,10 +150,276 @@
+ }
+ .query-error .ui-button {
+   gap: 8px;
+ }
+ 
++.ui-form-field {
++  color: var(--text);
++  display: flex;
++  flex-direction: column;
++  gap: 7px;
++  min-width: 0;
++}
++.ui-form-label {
++  color: var(--muted-strong);
++  font-size: 12px;
++  font-weight: 700;
++  letter-spacing: .04em;
++}
++.ui-form-error {
++  color: #ff9ac5;
++  font-size: 12px;
++  line-height: 1.4;
++}
++.ui-textarea,
++.ui-form-field .ui-input,
++.ui-dialog .ui-input,
++.ui-dialog textarea {
++  background: var(--surface-control);
++  border: 1px solid var(--line);
++  border-radius: 11px;
++  color: var(--text);
++  outline: 0;
++  width: 100%;
++}
++.ui-form-field .ui-input {
++  min-height: 40px;
++  padding: 0 12px;
++}
++.ui-dialog .ui-input {
++  min-height: 45px;
++  padding: 0 13px;
++}
++.ui-textarea,
++.ui-dialog textarea {
++  min-height: 132px;
++  padding: 12px 13px;
++  resize: vertical;
++}
++.ui-dialog textarea {
++  min-height: 180px;
++}
++.ui-textarea::placeholder,
++.ui-form-field .ui-input::placeholder,
++.ui-dialog textarea::placeholder,
++.ui-dialog .ui-input::placeholder,
++.ui-chip-input input::placeholder {
++  color: var(--muted);
++}
++.ui-textarea:focus,
++.ui-form-field .ui-input:focus,
++.ui-dialog textarea:focus,
++.ui-dialog .ui-input:focus,
++.ui-chip-input:focus-within {
++  border-color: var(--pink);
++  box-shadow: 0 0 0 3px #ff176a30;
++}
++
++.ui-chip-input {
++  align-items: center;
++  background: var(--surface-control);
++  border: 1px solid var(--line);
++  border-radius: 11px;
++  display: flex;
++  flex-wrap: wrap;
++  gap: 6px;
++  min-height: 40px;
++  padding: 6px 9px;
++  transition: border-color .18s ease, box-shadow .18s ease;
++}
++.ui-chip {
++  align-items: center;
++  background: var(--pink-soft);
++  border: 1px solid #ff176a55;
++  border-radius: 999px;
++  color: #ffb4d3;
++  display: inline-flex;
++  font-size: 12px;
++  gap: 4px;
++  max-width: 100%;
++  padding: 4px 6px 4px 9px;
++}
++.ui-chip > button {
++  align-items: center;
++  background: transparent;
++  border: 0;
++  border-radius: 50%;
++  color: inherit;
++  display: inline-flex;
++  flex: none;
++  justify-content: center;
++  padding: 2px;
++}
++.ui-chip > button:hover {
++  background: #ff176a33;
++  color: var(--text);
++}
++.ui-chip-input input {
++  background: transparent;
++  border: 0;
++  color: var(--text);
++  flex: 1 1 120px;
++  min-height: 26px;
++  min-width: 80px;
++  outline: 0;
++}
++
++.ui-tone-picker {
++  align-items: center;
++  display: flex;
++  flex-wrap: wrap;
++  gap: 10px;
++}
++.ui-tone-swatch {
++  border: 2px solid transparent;
++  border-radius: 50%;
++  box-shadow: 0 0 0 1px var(--line-bright);
++  height: 28px;
++  padding: 0;
++  transition: box-shadow .18s ease, transform .18s ease;
++  width: 28px;
++}
++.ui-tone-swatch:hover {
++  transform: scale(1.08);
++}
++.ui-tone-swatch.active {
++  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--pink);
++}
++.tone-rose { background: #ff4e91; }
++.tone-green { background: #20d19b; }
++.tone-purple { background: #8b6ee8; }
++.tone-orange { background: #f59e42; }
++.tone-plum { background: #c83f91; }
++
++.ui-dialog-backdrop {
++  align-items: center;
++  background: #03060bbd;
++  display: flex;
++  inset: 0;
++  justify-content: center;
++  padding: 24px;
++  position: fixed;
++  z-index: 10;
++}
++.ui-dialog {
++  background: var(--panel-raised);
++  border: 1px solid var(--line-bright);
++  border-radius: 24px;
++  box-shadow: 0 25px 80px #0009;
++  display: flex;
++  flex-direction: column;
++  gap: 12px;
++  max-height: calc(100svh - 48px);
++  max-width: 540px;
++  overflow: auto;
++  padding: 24px;
++  width: 100%;
++}
++.ui-dialog-header,
++.ui-side-panel-header {
++  align-items: flex-start;
++  display: flex;
++  flex: none;
++  justify-content: space-between;
++}
++.ui-dialog-header {
++  margin-bottom: 7px;
++}
++.ui-dialog-header h2,
++.ui-side-panel-header h2 {
++  color: var(--text);
++  font-size: 25px;
++  letter-spacing: -.03em;
++  margin: 5px 0 0;
++}
++.close-dialog,
++.discard-button {
++  background: transparent;
++  border: 0;
++  color: var(--muted);
++}
++.close-dialog {
++  align-items: center;
++  border-radius: 9px;
++  display: flex;
++  padding: 8px;
++  transition: background .18s ease, color .18s ease;
++}
++.close-dialog:hover,
++.discard-button:hover {
++  background: var(--surface-hover);
++  color: var(--text);
++}
++.close-dialog:focus-visible,
++.discard-button:focus-visible,
++.ui-chip > button:focus-visible,
++.ui-tone-swatch:focus-visible {
++  outline: 2px solid #ff73ac;
++  outline-offset: 2px;
++}
++.ui-dialog-footer,
++.compose-footer {
++  align-items: center;
++  display: flex;
++  flex-wrap: wrap;
++  gap: 12px;
++  margin-top: 6px;
++}
++.discard-button {
++  border-radius: 10px;
++  padding: 8px 10px;
++  transition: background .18s ease, color .18s ease;
++}
++.send-button {
++  align-items: center;
++  background: var(--pink);
++  border: 0;
++  border-radius: 20px;
++  color: white;
++  display: flex;
++  font-weight: 600;
++  gap: 8px;
++  padding: 10px 16px;
++  transition: background .18s ease, transform .18s ease;
++}
++.send-button:hover {
++  background: #ff3e82;
++  transform: translateY(-1px);
++}
++
++.ui-side-panel.reader-panel {
++  background: var(--panel);
++  display: flex;
++  flex-direction: column;
++  height: 100%;
++  min-height: 0;
++  overflow: hidden;
++  padding: 0;
++}
++.ui-side-panel-header {
++  border-bottom: 1px solid var(--line);
++  padding: 20px 24px 16px;
++}
++.ui-side-panel-body {
++  flex: 1;
++  min-height: 0;
++  overflow: auto;
++  padding: 20px 24px;
++}
++.ui-side-panel-footer {
++  align-items: center;
++  background: var(--panel);
++  border-top: 1px solid var(--line);
++  bottom: 0;
++  display: flex;
++  flex: none;
++  flex-wrap: wrap;
++  gap: 10px;
++  padding: 16px 24px;
++  position: sticky;
++}
++
+ @keyframes ui-shimmer {
+   0% { background-position: 100% 0; }
+   100% { background-position: -100% 0; }
+ }
+ @keyframes ui-spin {
+@@ -171,10 +437,25 @@
+ .theme-light .query-error {
+   background: #fff0f6;
+   border-color: #ff4e91;
+   color: #c5155b;
+ }
++.theme-light .ui-form-error {
++  color: #c5155b;
++}
++.theme-light .ui-chip {
++  border-color: #ff4e9166;
++  color: #a9104c;
++}
++.theme-light .ui-tone-swatch.active {
++  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--pink);
++}
++.theme-light .ui-dialog {
++  background: var(--panel-raised);
++  border-color: var(--line);
++  box-shadow: 0 25px 80px #40506933;
++}
+ 
+ @media (prefers-reduced-motion: reduce) {
+   .ui-skeleton,
+   .ui-spinner {
+     animation: none;
+diff --git a/client/src/data/mockCalendar.ts b/client/src/data/mockCalendar.ts
+index c5f40fb..49d01f2 100644
+--- a/client/src/data/mockCalendar.ts
++++ b/client/src/data/mockCalendar.ts
+@@ -8,10 +8,11 @@ export type CalendarEvent = {
+   time: string
+   day: string
+   location: string
+   tone: EventTone
+   attendees: string[]
++  notes?: string
+   /** Minutes from midnight */
+   startMinutes: number
+   endMinutes: number
+ }
+ 
+@@ -233,5 +234,52 @@ export function eventsForDate(events: CalendarEvent[], date: string) {
+ 
+ export function eventsForDates(events: CalendarEvent[], dates: string[]) {
+   const set = new Set(dates)
+   return events.filter((event) => set.has(event.date))
+ }
++
++export function appendCalendarEvent(event: CalendarEvent): CalendarEvent {
++  calendarEvents.push(event)
++  for (const day of [
++    ...calendarData.monthDays,
++    ...calendarData.fourWeekDays,
++    ...calendarData.weekDays,
++    ...calendarData.yearMonths.flatMap((m) => m.days),
++  ]) {
++    if (day.date === event.date) day.hasEvents = true
++  }
++  return event
++}
++
++function formatEventTime(startMinutes: number, endMinutes: number): string {
++  const fmt = (mins: number) => {
++    const h = Math.floor(mins / 60)
++    const m = mins % 60
++    const period = h >= 12 ? 'PM' : 'AM'
++    const hour12 = h % 12 === 0 ? 12 : h % 12
++    return `${hour12}:${String(m).padStart(2, '0')} ${period}`
++  }
++  return `${fmt(startMinutes)} – ${fmt(endMinutes)}`
++}
++
++function formatEventDay(date: string): string {
++  const d = new Date(`${date}T12:00:00`)
++  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).replace(',', ' ·')
++}
++
++export function buildCalendarEvent(input: {
++  id: string
++  title: string
++  date: string
++  startMinutes: number
++  endMinutes: number
++  location: string
++  tone: EventTone
++  attendees: string[]
++  notes?: string
++}): CalendarEvent {
++  return {
++    ...input,
++    time: formatEventTime(input.startMinutes, input.endMinutes),
++    day: formatEventDay(input.date),
++  }
++}
+diff --git a/client/src/data/mockContacts.ts b/client/src/data/mockContacts.ts
+index 12730a6..bab23d0 100644
+--- a/client/src/data/mockContacts.ts
++++ b/client/src/data/mockContacts.ts
+@@ -71,5 +71,17 @@ export const contactsData: ContactsData = {
+       phone: '+1 (206) 555-0133',
+       notes: 'Interested in shared labels and guest inbox access.',
+     },
+   ],
+ }
++
++export function initialsFromName(name: string): string {
++  const parts = name.trim().split(/\s+/).filter(Boolean)
++  if (parts.length === 0) return '?'
++  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
++  return `${parts[0]![0] ?? ''}${parts[parts.length - 1]![0] ?? ''}`.toUpperCase()
++}
++
++export function appendContact(contact: Contact): Contact {
++  contactsData.contacts.push(contact)
++  return contact
++}
+diff --git a/client/src/data/mockMail.ts b/client/src/data/mockMail.ts
+index 647caf1..65112b1 100644
+--- a/client/src/data/mockMail.ts
++++ b/client/src/data/mockMail.ts
+@@ -13,10 +13,13 @@ export type Mail = {
+   unread?: boolean
+   starred?: boolean
+   labels: MailLabel[]
+   attachments?: string[]
+   body: string[]
++  folder: string
++  cc?: string[]
++  bcc?: string[]
+ }
+ 
+ export const mailbox = {
+   account: {
+     name: 'Courtney Henry',
+@@ -51,10 +54,11 @@ export const mailbox = {
+       avatarTone: 'rose',
+       subject: 'Payout of $3,450.00 Sent to Your Bank Account 💰',
+       preview: 'Your daily automatic payout of $3,450.00 USD has been initiated and will arrive in your checking account within 1 business day…',
+       time: '9:42 AM',
+       date: 'Aug 5, 2026',
++      folder: 'Inbox',
+       unread: true,
+       starred: true,
+       labels: ['Finance'],
+       attachments: ['Payout_Summary_AUG2026.pdf', 'Tax_Receipt.pdf'],
+       body: [
+@@ -73,10 +77,11 @@ export const mailbox = {
+       avatarTone: 'purple',
+       subject: 'Q3 Ops Brief: Migration timeline, risk register, and open decisions',
+       preview: 'Below is the full operating brief for the Q3 migration. Please review every section before Thursday’s steering call — especially the rollback criteria and staffing plan…',
+       time: '7:58 AM',
+       date: 'Aug 5, 2026',
++      folder: 'Inbox',
+       unread: true,
+       labels: ['Personal'],
+       attachments: ['Q3_Ops_Brief.pdf', 'risk_register.csv', 'migration_runbook.md'],
+       body: [
+         'Hi Courtney,',
+@@ -103,10 +108,11 @@ export const mailbox = {
+       avatarTone: 'green',
+       subject: 'Request for review: mailbox retention policy draft (v4) and implementation notes',
+       preview: 'Attached and pasted below is the full v4 retention draft. It is intentionally long because counsel asked for examples, edge cases, and a phased rollout narrative your team can execute…',
+       time: '7:12 AM',
+       date: 'Aug 5, 2026',
++      folder: 'Inbox',
+       unread: true,
+       labels: ['Security'],
+       attachments: ['Retention_Policy_v4.docx', 'implementation_checklist.pdf'],
+       body: [
+         'Dear Courtney,',
+@@ -133,10 +139,11 @@ export const mailbox = {
+       avatarTone: 'plum',
+       subject: 'New Marketing Materials & Brand Assets 🎨',
+       preview: "Hi Courtney! I've attached the new promotional flyers, social media banners, and print-ready PDFs for our Q3 marketing campaign…",
+       time: '8:15 AM',
+       date: 'Aug 5, 2026',
++      folder: 'Inbox',
+       unread: true,
+       labels: ['Marketing'],
+       attachments: ['Q3_campaign_assets.zip', 'social_banners.fig'],
+       body: ['Hi Courtney,', 'The new campaign assets are ready for your review. I kept the new color system feeling bold but still close to the existing brand.', 'Let me know what you would like to adjust before we send this to print.'],
+     },
+@@ -148,10 +155,11 @@ export const mailbox = {
+       avatarTone: 'green',
+       subject: 'Daily Store Revenue & Order Summary ($1,840.00) 🛍️',
+       preview: 'Congratulations! Your online store generated 24 new orders yesterday with total gross sales of $1,840.00. 2 items require shipment…',
+       time: 'Yesterday',
+       date: 'Aug 4, 2026',
++      folder: 'Inbox',
+       labels: ['Orders'],
+       body: ['Good morning,', 'Your store had a strong day. Twenty-four new orders came in, with two orders waiting for shipment.', 'Open your store dashboard to review the full breakdown.'],
+     },
+     {
+       id: 'coffee-partnership',
+@@ -161,10 +169,11 @@ export const mailbox = {
+       avatarTone: 'orange',
+       subject: 'Coffee & Strategic Partnership Discussion ☕',
+       preview: 'Loved your professional domain email setup! Would love to catch up for 20 minutes this Thursday to discuss networking & growth…',
+       time: 'Aug 3',
+       date: 'Aug 3, 2026',
++      folder: 'Inbox',
+       labels: ['Personal'],
+       body: ['Hey Courtney,', 'Loved your professional domain email setup. Would love to catch up for 20 minutes this Thursday to discuss networking and growth.', 'Would 2:30 PM work for you?'],
+     },
+     {
+       id: 'ssl-renewal',
+@@ -174,10 +183,11 @@ export const mailbox = {
+       avatarTone: 'orange',
+       subject: 'Automatic SSL/TLS Edge Certificate Auto-Renewed 🔒',
+       preview: 'Your wildcard SSL/TLS edge certificate for *.yourdomain.com has been automatically renewed for 365 days…',
+       time: 'Aug 1',
+       date: 'Aug 1, 2026',
++      folder: 'Inbox',
+       labels: ['Security'],
+       body: ['Your certificate renewal is complete.', 'The wildcard certificate for *.yourdomain.com is active for another 365 days. No action is required.'],
+     },
+     {
+       id: 'product-hunt',
+@@ -187,12 +197,13 @@ export const mailbox = {
+       avatarTone: 'purple',
+       subject: 'The products everyone is talking about this week',
+       preview: 'Catch up on the most interesting launches, tools, and ideas from makers around the world…',
+       time: 'Jul 31',
+       date: 'Jul 31, 2026',
++      folder: 'Inbox',
+       labels: ['Socials'],
+       body: ['Here are this week’s top launches from the Product Hunt community.'],
+     },
+-  ] satisfies Mail[],
++  ] as Mail[],
+ }
+ 
+ export type Mailbox = typeof mailbox
+diff --git a/client/src/features/calendar/CalendarWorkspace.tsx b/client/src/features/calendar/CalendarWorkspace.tsx
+index 413da90..18fdfce 100644
+--- a/client/src/features/calendar/CalendarWorkspace.tsx
++++ b/client/src/features/calendar/CalendarWorkspace.tsx
+@@ -7,10 +7,11 @@ import { Toolbar } from '../../components/ui/toolbar'
+ import { QueryState } from '../../components/ui/query-state'
+ import { SkeletonRow } from '../../components/ui/skeleton'
+ import { Button } from '../../components/ui/button'
+ import { calendarQueries } from './queries'
+ import { DayView, FourWeekView, MonthView, WeekView, YearView } from './CalendarViews'
++import { EventFormPanel } from './EventFormPanel'
+ import { EventAgenda, EventDetail } from './EventWidgets'
+ import { eventsForDate, eventsForDates } from '../../data/mockCalendar'
+ import {
+   calendarViewOptions,
+   useCalendarUiStore,
+@@ -40,10 +41,12 @@ export function CalendarWorkspace() {
+   const setViewMode = useCalendarUiStore((state) => state.setViewMode)
+   const focusDate = useCalendarUiStore((state) => state.focusDate)
+   const setFocusDate = useCalendarUiStore((state) => state.setFocusDate)
+   const selectedEventId = useCalendarUiStore((state) => state.selectedEventId)
+   const setSelectedEventId = useCalendarUiStore((state) => state.setSelectedEventId)
++  const createOpen = useCalendarUiStore((state) => state.createOpen)
++  const setCreateOpen = useCalendarUiStore((state) => state.setCreateOpen)
+ 
+   const selected = data?.events.find((event) => event.id === selectedEventId) ?? data?.events[0]
+ 
+   const title = useMemo(() => {
+     if (!data) return 'Calendar'
+@@ -172,10 +175,19 @@ export function CalendarWorkspace() {
+                       setViewMode('day')
+                     }}
+                   >
+                     Today
+                   </Button>
++                  <Button
++                    size="sm"
++                    onClick={() => {
++                      setCreateOpen(true)
++                      if (viewMode === 'year') setViewMode('day')
++                    }}
++                  >
++                    New event
++                  </Button>
+                 </Toolbar>
+               }
+             >
+               {viewMode === 'month' ? (
+                 <MonthView
+@@ -228,13 +240,17 @@ export function CalendarWorkspace() {
+                   <EventAgenda
+                     events={agendaEvents}
+                     selectedId={selected?.id}
+                     onSelect={setSelectedEventId}
+                   />
+-                  <section className="calendar-detail reader-panel">
+-                    <EventDetail event={selected} />
+-                  </section>
++                  {createOpen ? (
++                    <EventFormPanel />
++                  ) : (
++                    <section className="calendar-detail reader-panel">
++                      <EventDetail event={selected} />
++                    </section>
++                  )}
+                 </div>
+               ) : null}
+             </Panel>
+           ) : null}
+         </QueryState>
+diff --git a/client/src/features/calendar/EventFormPanel.tsx b/client/src/features/calendar/EventFormPanel.tsx
+new file mode 100644
+index 0000000..8f891b2
+--- /dev/null
++++ b/client/src/features/calendar/EventFormPanel.tsx
+@@ -0,0 +1,191 @@
++import { useState, type FormEvent } from 'react'
++import { CalendarPlus } from 'lucide-react'
++import type { CreateEventInput } from '../../api/calendar'
++import { Button } from '../../components/ui/button'
++import { ChipInput } from '../../components/ui/chip-input'
++import { FormField } from '../../components/ui/form-field'
++import { Input } from '../../components/ui/input'
++import { SidePanel } from '../../components/ui/side-panel'
++import { Spinner } from '../../components/ui/spinner'
++import { TextArea } from '../../components/ui/textarea'
++import { TonePicker } from '../../components/ui/tone-picker'
++import { useCalendarUiStore } from '../../stores/calendarUiStore'
++import { useCreateEvent } from './mutations'
++
++type ValidationErrors = Partial<Record<'title' | 'date' | 'endMinutes', string>>
++
++const defaultStartMinutes = 10 * 60
++const toneOptions = [
++  { id: 'rose', label: 'Rose' },
++  { id: 'green', label: 'Green' },
++  { id: 'purple', label: 'Purple' },
++  { id: 'orange', label: 'Orange' },
++] satisfies { id: CreateEventInput['tone']; label: string }[]
++
++function parseTimeToMinutes(value: string): number {
++  const [hours, minutes] = value.split(':').map(Number)
++  return (hours ?? 0) * 60 + (minutes ?? 0)
++}
++
++function minutesToTimeInput(minutes: number): string {
++  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
++}
++
++export function EventFormPanel() {
++  const focusDate = useCalendarUiStore((state) => state.focusDate)
++  const setCreateOpen = useCalendarUiStore((state) => state.setCreateOpen)
++  const [title, setTitle] = useState('')
++  const [date, setDate] = useState(focusDate)
++  const [startMinutes, setStartMinutes] = useState(defaultStartMinutes)
++  const [endMinutes, setEndMinutes] = useState(defaultStartMinutes + 60)
++  const [location, setLocation] = useState('')
++  const [attendees, setAttendees] = useState<string[]>([])
++  const [notes, setNotes] = useState('')
++  const [tone, setTone] = useState<CreateEventInput['tone']>('rose')
++  const [validation, setValidation] = useState<ValidationErrors>({})
++  const { mutateAsync, isPending, error } = useCreateEvent()
++
++  function closePanel() {
++    setCreateOpen(false)
++  }
++
++  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault()
++    const nextValidation: ValidationErrors = {
++      ...(!title.trim() && { title: 'Add an event title.' }),
++      ...(!date && { date: 'Choose an event date.' }),
++      ...(endMinutes <= startMinutes && { endMinutes: 'End time must be after start time.' }),
++    }
++
++    setValidation(nextValidation)
++    if (Object.keys(nextValidation).length > 0) return
++
++    try {
++      await mutateAsync({
++        title,
++        date,
++        startMinutes,
++        endMinutes,
++        location,
++        attendees,
++        notes,
++        tone,
++      })
++    } catch {
++      // The mutation error is rendered inline below the form.
++    }
++  }
++
++  return (
++    <SidePanel
++      open
++      onClose={closePanel}
++      eyebrow="Calendar"
++      title="New event"
++      className="calendar-event-form-panel"
++      footer={
++        <div className="calendar-event-form-actions">
++          <Button type="submit" form="event-create-form" disabled={isPending}>
++            {isPending ? <Spinner size={14} /> : null}
++            Save event <CalendarPlus size={15} strokeWidth={1.75} />
++          </Button>
++          <Button type="button" variant="ghost" onClick={closePanel} disabled={isPending}>
++            Discard
++          </Button>
++        </div>
++      }
++    >
++      <form
++        id="event-create-form"
++        className="calendar-event-form"
++        onSubmit={(event) => void handleSubmit(event)}
++      >
++        <FormField label="Title" htmlFor="event-title" error={validation.title}>
++          <Input
++            id="event-title"
++            autoFocus
++            value={title}
++            onChange={(event) => {
++              setTitle(event.target.value)
++              setValidation((current) => ({ ...current, title: undefined }))
++            }}
++            placeholder="Event title"
++          />
++        </FormField>
++        <FormField label="Date" htmlFor="event-date" error={validation.date}>
++          <Input
++            id="event-date"
++            type="date"
++            value={date}
++            onChange={(event) => {
++              setDate(event.target.value)
++              setValidation((current) => ({ ...current, date: undefined }))
++            }}
++          />
++        </FormField>
++        <div className="calendar-event-time-fields">
++          <FormField label="Starts" htmlFor="event-start">
++            <Input
++              id="event-start"
++              type="time"
++              value={minutesToTimeInput(startMinutes)}
++              onChange={(event) => {
++                setStartMinutes(parseTimeToMinutes(event.target.value))
++                setValidation((current) => ({ ...current, endMinutes: undefined }))
++              }}
++            />
++          </FormField>
++          <FormField label="Ends" htmlFor="event-end" error={validation.endMinutes}>
++            <Input
++              id="event-end"
++              type="time"
++              value={minutesToTimeInput(endMinutes)}
++              onChange={(event) => {
++                setEndMinutes(parseTimeToMinutes(event.target.value))
++                setValidation((current) => ({ ...current, endMinutes: undefined }))
++              }}
++            />
++          </FormField>
++        </div>
++        <FormField label="Location" htmlFor="event-location">
++          <Input
++            id="event-location"
++            value={location}
++            onChange={(event) => setLocation(event.target.value)}
++            placeholder="Room or video link"
++          />
++        </FormField>
++        <FormField label="Attendees" htmlFor="event-attendees">
++          <ChipInput
++            id="event-attendees"
++            label="Event attendees"
++            value={attendees}
++            onChange={setAttendees}
++            placeholder="Add attendee and press Enter"
++          />
++        </FormField>
++        <FormField label="Notes" htmlFor="event-notes">
++          <TextArea
++            id="event-notes"
++            value={notes}
++            onChange={(event) => setNotes(event.target.value)}
++            placeholder="Add event notes…"
++          />
++        </FormField>
++        <FormField label="Color" htmlFor="event-tone">
++          <TonePicker
++            value={tone}
++            onChange={(value) => setTone(value as CreateEventInput['tone'])}
++            options={toneOptions}
++            label="Event color"
++          />
++        </FormField>
++        {error ? (
++          <p className="calendar-event-form-error" role="alert">
++            {error.message}
++          </p>
++        ) : null}
++      </form>
++    </SidePanel>
++  )
++}
+diff --git a/client/src/features/calendar/calendar.css b/client/src/features/calendar/calendar.css
+index 823e11a..ba7bfee 100644
+--- a/client/src/features/calendar/calendar.css
++++ b/client/src/features/calendar/calendar.css
+@@ -146,10 +146,50 @@
+   display: grid;
+   gap: 18px;
+   grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+ }
+ 
++.calendar-split .calendar-event-form-panel {
++  border: 1px solid var(--card-border);
++  border-radius: 22px;
++  min-height: 420px;
++}
++
++.calendar-event-form {
++  display: flex;
++  flex-direction: column;
++  gap: 14px;
++}
++
++.calendar-event-time-fields {
++  display: grid;
++  gap: 12px;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++}
++
++.calendar-event-form-actions {
++  align-items: center;
++  display: flex;
++  flex-wrap: wrap;
++  gap: 10px;
++}
++
++.calendar-event-form-actions .ui-button {
++  gap: 8px;
++}
++
++.calendar-event-form-actions .ui-button:disabled {
++  cursor: wait;
++  opacity: 0.75;
++}
++
++.calendar-event-form-error {
++  color: #ff9ac5;
++  font-size: 13px;
++  margin: 0;
++}
++
+ .calendar-event-row {
+   grid-template-columns: 18px minmax(0, 1fr);
+ }
+ 
+ .calendar-detail {
+@@ -405,5 +445,11 @@
+   .view-switcher {
+     width: 100%;
+     overflow-x: auto;
+   }
+ }
++
++@media (max-width: 560px) {
++  .calendar-event-time-fields {
++    grid-template-columns: 1fr;
++  }
++}
+diff --git a/client/src/features/calendar/mutations.ts b/client/src/features/calendar/mutations.ts
+new file mode 100644
+index 0000000..5f707be
+--- /dev/null
++++ b/client/src/features/calendar/mutations.ts
+@@ -0,0 +1,19 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { createEvent, type CreateEventInput } from '../../api/calendar'
++import { useCalendarUiStore } from '../../stores/calendarUiStore'
++import { calendarQueries } from './queries'
++
++export function useCreateEvent() {
++  const queryClient = useQueryClient()
++  const setSelectedEventId = useCalendarUiStore((state) => state.setSelectedEventId)
++  const setCreateOpen = useCalendarUiStore((state) => state.setCreateOpen)
++
++  return useMutation({
++    mutationFn: (input: CreateEventInput) => createEvent(input),
++    onSuccess: async (event) => {
++      await queryClient.invalidateQueries({ queryKey: calendarQueries.calendar().queryKey })
++      setSelectedEventId(event.id)
++      setCreateOpen(false)
++    },
++  })
++}
+diff --git a/client/src/features/contacts/ContactFormPanel.tsx b/client/src/features/contacts/ContactFormPanel.tsx
+new file mode 100644
+index 0000000..cf1a4f9
+--- /dev/null
++++ b/client/src/features/contacts/ContactFormPanel.tsx
+@@ -0,0 +1,155 @@
++import { useState, type FormEvent } from 'react'
++import type { CreateContactInput } from '../../api/contacts'
++import { Button } from '../../components/ui/button'
++import { FormField } from '../../components/ui/form-field'
++import { Input } from '../../components/ui/input'
++import { SidePanel } from '../../components/ui/side-panel'
++import { Spinner } from '../../components/ui/spinner'
++import { TextArea } from '../../components/ui/textarea'
++import { TonePicker } from '../../components/ui/tone-picker'
++import { useContactsUiStore } from '../../stores/contactsUiStore'
++import { useCreateContact } from './mutations'
++
++type ValidationErrors = Partial<Record<'name' | 'email', string>>
++
++const toneOptions = [
++  { id: 'rose', label: 'Rose' },
++  { id: 'green', label: 'Green' },
++  { id: 'purple', label: 'Purple' },
++  { id: 'orange', label: 'Orange' },
++  { id: 'plum', label: 'Plum' },
++] satisfies { id: CreateContactInput['avatarTone']; label: string }[]
++
++export function ContactFormPanel() {
++  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
++  const [name, setName] = useState('')
++  const [email, setEmail] = useState('')
++  const [phone, setPhone] = useState('')
++  const [company, setCompany] = useState('')
++  const [role, setRole] = useState('')
++  const [notes, setNotes] = useState('')
++  const [avatarTone, setAvatarTone] = useState<CreateContactInput['avatarTone']>('plum')
++  const [validation, setValidation] = useState<ValidationErrors>({})
++  const { mutateAsync, isPending, error } = useCreateContact()
++
++  function closePanel() {
++    setCreateOpen(false)
++  }
++
++  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault()
++    const nextValidation: ValidationErrors = {
++      ...(!name.trim() && { name: 'Add a contact name.' }),
++      ...(!email.trim() && { email: 'Add an email address.' }),
++    }
++
++    setValidation(nextValidation)
++    if (Object.keys(nextValidation).length > 0) return
++
++    try {
++      await mutateAsync({ name, email, phone, company, role, notes, avatarTone })
++    } catch {
++      // The mutation error is rendered inline below the form.
++    }
++  }
++
++  return (
++    <SidePanel
++      open
++      onClose={closePanel}
++      eyebrow="Contacts"
++      title="New contact"
++      className="contact-form-panel"
++      footer={
++        <div className="contact-form-actions">
++          <Button type="submit" form="contact-create-form" disabled={isPending}>
++            {isPending ? <Spinner size={14} /> : null}
++            Save
++          </Button>
++          <Button type="button" variant="ghost" onClick={closePanel} disabled={isPending}>
++            Discard
++          </Button>
++        </div>
++      }
++    >
++      <form
++        id="contact-create-form"
++        className="contact-form"
++        onSubmit={(event) => void handleSubmit(event)}
++      >
++        <FormField label="Name" htmlFor="contact-name" error={validation.name}>
++          <Input
++            id="contact-name"
++            autoFocus
++            value={name}
++            onChange={(event) => {
++              setName(event.target.value)
++              setValidation((current) => ({ ...current, name: undefined }))
++            }}
++            placeholder="Full name"
++          />
++        </FormField>
++        <FormField label="Email" htmlFor="contact-email" error={validation.email}>
++          <Input
++            id="contact-email"
++            type="email"
++            value={email}
++            onChange={(event) => {
++              setEmail(event.target.value)
++              setValidation((current) => ({ ...current, email: undefined }))
++            }}
++            placeholder="name@example.com"
++          />
++        </FormField>
++        <FormField label="Phone" htmlFor="contact-phone">
++          <Input
++            id="contact-phone"
++            type="tel"
++            value={phone}
++            onChange={(event) => setPhone(event.target.value)}
++            placeholder="+1 555 0100"
++          />
++        </FormField>
++        <div className="contact-form-row">
++          <FormField label="Company" htmlFor="contact-company">
++            <Input
++              id="contact-company"
++              value={company}
++              onChange={(event) => setCompany(event.target.value)}
++              placeholder="Company"
++            />
++          </FormField>
++          <FormField label="Role" htmlFor="contact-role">
++            <Input
++              id="contact-role"
++              value={role}
++              onChange={(event) => setRole(event.target.value)}
++              placeholder="Role"
++            />
++          </FormField>
++        </div>
++        <FormField label="Notes" htmlFor="contact-notes">
++          <TextArea
++            id="contact-notes"
++            value={notes}
++            onChange={(event) => setNotes(event.target.value)}
++            placeholder="Add contact notes…"
++          />
++        </FormField>
++        <FormField label="Avatar color" htmlFor="contact-avatar-tone">
++          <TonePicker
++            value={avatarTone}
++            onChange={(value) => setAvatarTone(value as CreateContactInput['avatarTone'])}
++            options={toneOptions}
++            label="Avatar color"
++          />
++        </FormField>
++        {error ? (
++          <p className="contact-form-error" role="alert">
++            {error.message}
++          </p>
++        ) : null}
++      </form>
++    </SidePanel>
++  )
++}
+diff --git a/client/src/features/contacts/ContactsWorkspace.tsx b/client/src/features/contacts/ContactsWorkspace.tsx
+index 8fc68be..cc9b14c 100644
+--- a/client/src/features/contacts/ContactsWorkspace.tsx
++++ b/client/src/features/contacts/ContactsWorkspace.tsx
+@@ -1,34 +1,40 @@
+ import { useMemo, useState } from 'react'
+ import { useQuery } from '@tanstack/react-query'
+ import { Building2, Mail, Phone, UsersRound } from 'lucide-react'
++import type { Contact } from '../../api/contacts'
+ import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
+ import { Avatar } from '../../components/ui/avatar'
++import { Button } from '../../components/ui/button'
+ import { SearchField } from '../../components/ui/search-field'
+ import { List, ListRow } from '../../components/ui/list'
+ import { Panel } from '../../components/ui/panel'
+ import { QueryState } from '../../components/ui/query-state'
+ import { SkeletonRow } from '../../components/ui/skeleton'
++import { useContactsUiStore } from '../../stores/contactsUiStore'
++import { ContactFormPanel } from './ContactFormPanel'
+ import { contactsQueries } from './queries'
+-import type { Contact } from '../../data/mockContacts'
+ import './contacts.css'
+ 
+ export function ContactsWorkspace() {
+   const { data, isPending, isError, error, refetch, isFetching } = useQuery(contactsQueries.contacts())
+   const contacts = useMemo(() => data?.contacts ?? [], [data?.contacts])
+   const [search, setSearch] = useState('')
+-  const [selectedId, setSelectedId] = useState('avery')
++  const selectedId = useContactsUiStore((state) => state.selectedId)
++  const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
++  const createOpen = useContactsUiStore((state) => state.createOpen)
++  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
+ 
+   const visible = useMemo(() => {
+     const normalized = search.trim().toLowerCase()
+     if (!normalized) return contacts
+     return contacts.filter((contact) =>
+       [contact.name, contact.email, contact.company, contact.role].join(' ').toLowerCase().includes(normalized),
+     )
+   }, [contacts, search])
+ 
+-  const selected = visible.find((contact) => contact.id === selectedId) ?? visible[0] ?? contacts[0]
++  const selected = contacts.find((contact) => contact.id === selectedId) ?? visible[0] ?? contacts[0]
+ 
+   return (
+     <AppShell
+       workspaceClassName="workspace-inbox product-contacts"
+       sidebar={
+@@ -78,10 +84,15 @@ export function ContactsWorkspace() {
+             <Panel
+               eyebrow="Directory"
+               title="Contacts"
+               description={`${visible.length} people`}
+               className="contacts-list-panel"
++              actions={
++                <Button size="sm" onClick={() => setCreateOpen(true)}>
++                  New contact
++                </Button>
++              }
+             >
+               <List label="Contacts">
+                 {visible.length === 0 ? (
+                   <div className="loading-state">No contacts match “{search}”.</div>
+                 ) : (
+@@ -95,43 +106,47 @@ export function ContactsWorkspace() {
+                   ))
+                 )}
+               </List>
+             </Panel>
+ 
+-            <section className="contacts-detail reader-panel">
+-              {selected ? (
+-                <>
+-                  <div className="reader-sender">
+-                    <Avatar initials={selected.initials} tone={selected.avatarTone} size="large" />
+-                    <div className="sender-details">
+-                      <h2>{selected.name}</h2>
++            {createOpen ? (
++              <ContactFormPanel />
++            ) : (
++              <section className="contacts-detail reader-panel">
++                {selected ? (
++                  <>
++                    <div className="reader-sender">
++                      <Avatar initials={selected.initials} tone={selected.avatarTone} size="large" />
++                      <div className="sender-details">
++                        <h2>{selected.name}</h2>
++                        <p>
++                          {selected.role}
++                          <br />
++                          {selected.company}
++                        </p>
++                      </div>
++                    </div>
++                    <div className="contact-fields">
++                      <p>
++                        <Mail size={15} strokeWidth={1.75} /> {selected.email}
++                      </p>
++                      <p>
++                        <Phone size={15} strokeWidth={1.75} /> {selected.phone}
++                      </p>
+                       <p>
+-                        {selected.role}
+-                        <br />
+-                        {selected.company}
++                        <Building2 size={15} strokeWidth={1.75} /> {selected.company}
+                       </p>
+                     </div>
+-                  </div>
+-                  <div className="contact-fields">
+-                    <p>
+-                      <Mail size={15} strokeWidth={1.75} /> {selected.email}
+-                    </p>
+-                    <p>
+-                      <Phone size={15} strokeWidth={1.75} /> {selected.phone}
+-                    </p>
+-                    <p>
+-                      <Building2 size={15} strokeWidth={1.75} /> {selected.company}
+-                    </p>
+-                  </div>
+-                  <div className="message-body">
+-                    <p>{selected.notes}</p>
+-                  </div>
+-                </>
+-              ) : (
+-                <p className="loading-state">Select a contact to view details.</p>
+-              )}
+-            </section>
++                    <div className="message-body">
++                      <p>{selected.notes}</p>
++                    </div>
++                  </>
++                ) : (
++                  <p className="loading-state">Select a contact to view details.</p>
++                )}
++              </section>
++            )}
+           </div>
+         </QueryState>
+       </main>
+     </AppShell>
+   )
+diff --git a/client/src/features/contacts/contacts.css b/client/src/features/contacts/contacts.css
+index d3ace84..cd4b9f8 100644
+--- a/client/src/features/contacts/contacts.css
++++ b/client/src/features/contacts/contacts.css
+@@ -13,10 +13,50 @@
+   border-radius: 28px;
+   min-height: 420px;
+   padding: 8px 24px 24px;
+ }
+ 
++.contacts-split .contact-form-panel {
++  border: 1px solid var(--card-border);
++  border-radius: 22px;
++  min-height: 420px;
++}
++
++.contact-form {
++  display: flex;
++  flex-direction: column;
++  gap: 14px;
++}
++
++.contact-form-row {
++  display: grid;
++  gap: 12px;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++}
++
++.contact-form-actions {
++  align-items: center;
++  display: flex;
++  flex-wrap: wrap;
++  gap: 10px;
++}
++
++.contact-form-actions .ui-button {
++  gap: 8px;
++}
++
++.contact-form-actions .ui-button:disabled {
++  cursor: wait;
++  opacity: 0.75;
++}
++
++.contact-form-error {
++  color: #ff9ac5;
++  font-size: 13px;
++  margin: 0;
++}
++
+ .contact-fields {
+   border-bottom: 1px solid var(--line);
+   border-top: 1px solid var(--line);
+   display: flex;
+   flex-direction: column;
+@@ -40,5 +80,11 @@
+ @media (max-width: 980px) {
+   .contacts-split {
+     grid-template-columns: 1fr;
+   }
+ }
++
++@media (max-width: 520px) {
++  .contact-form-row {
++    grid-template-columns: 1fr;
++  }
++}
+diff --git a/client/src/features/contacts/mutations.ts b/client/src/features/contacts/mutations.ts
+new file mode 100644
+index 0000000..c2fe2a2
+--- /dev/null
++++ b/client/src/features/contacts/mutations.ts
+@@ -0,0 +1,19 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { createContact, type CreateContactInput } from '../../api/contacts'
++import { useContactsUiStore } from '../../stores/contactsUiStore'
++import { contactsQueries } from './queries'
++
++export function useCreateContact() {
++  const queryClient = useQueryClient()
++  const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
++  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
++
++  return useMutation({
++    mutationFn: (input: CreateContactInput) => createContact(input),
++    onSuccess: async (contact) => {
++      await queryClient.invalidateQueries({ queryKey: contactsQueries.contacts().queryKey })
++      setSelectedId(contact.id)
++      setCreateOpen(false)
++    },
++  })
++}
+diff --git a/client/src/features/mail/ComposeDialog.tsx b/client/src/features/mail/ComposeDialog.tsx
+index 2995714..1359d59 100644
+--- a/client/src/features/mail/ComposeDialog.tsx
++++ b/client/src/features/mail/ComposeDialog.tsx
+@@ -1,68 +1,160 @@
+-import { useState } from 'react'
++import { useState, type FormEvent } from 'react'
+ import { Send } from 'lucide-react'
++import { Button } from '../../components/ui/button'
++import { ChipInput } from '../../components/ui/chip-input'
+ import { Dialog } from '../../components/ui/dialog'
++import { FormField } from '../../components/ui/form-field'
+ import { Input } from '../../components/ui/input'
+ import { Spinner } from '../../components/ui/spinner'
++import { TextArea } from '../../components/ui/textarea'
++import { useCreateMessage } from './mutations'
+ 
+ type ComposeDialogProps = {
+   open: boolean
+   onClose: () => void
+ }
+ 
++type ValidationErrors = Partial<Record<'to' | 'subject' | 'body', string>>
++
+ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
+   const [to, setTo] = useState('')
++  const [cc, setCc] = useState<string[]>([])
++  const [bcc, setBcc] = useState<string[]>([])
+   const [subject, setSubject] = useState('')
+   const [body, setBody] = useState('')
+-  const [sending, setSending] = useState(false)
+-  const [validation, setValidation] = useState<string | null>(null)
++  const [attachments, setAttachments] = useState<string[]>([])
++  const [validation, setValidation] = useState<ValidationErrors>({})
++  const { mutateAsync, isPending, error, reset } = useCreateMessage()
+ 
+-  async function handleSend() {
+-    if (!to.trim() || !subject.trim() || !body.trim()) {
+-      setValidation('Add a recipient, subject, and message before sending.')
+-      return
+-    }
+-    setValidation(null)
+-    setSending(true)
+-    await new Promise((resolve) => setTimeout(resolve, 400))
+-    setSending(false)
++  function resetForm() {
+     setTo('')
++    setCc([])
++    setBcc([])
+     setSubject('')
+     setBody('')
++    setAttachments([])
++    setValidation({})
++    reset()
++  }
++
++  function closeDialog() {
++    resetForm()
+     onClose()
+   }
+ 
++  async function handleSend(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault()
++    const nextValidation: ValidationErrors = {
++      ...(!to.trim() && { to: 'Add at least one recipient.' }),
++      ...(!subject.trim() && { subject: 'Add a subject.' }),
++      ...(!body.trim() && { body: 'Write a message.' }),
++    }
++
++    setValidation(nextValidation)
++    if (Object.keys(nextValidation).length > 0) {
++      return
++    }
++
++    try {
++      await mutateAsync({
++        to: to.trim(),
++        cc: cc.length ? cc : undefined,
++        bcc: bcc.length ? bcc : undefined,
++        subject,
++        body,
++        attachments: attachments.length ? attachments : undefined,
++      })
++      resetForm()
++    } catch {
++      // The mutation error is rendered inline below the form.
++    }
++  }
++
+   return (
+     <Dialog
+       open={open}
+-      onClose={onClose}
++      onClose={closeDialog}
+       eyebrow="New message"
+       title="Compose"
+       footer={
+-        <div className="compose-footer">
+-          <button className="send-button" type="button" onClick={() => void handleSend()} disabled={sending}>
+-            {sending ? <Spinner size={14} /> : null}
++        <div className="ui-dialog-footer">
++          <Button type="submit" form="compose-form" disabled={isPending}>
++            {isPending ? <Spinner size={14} /> : null}
+             Send <Send size={15} strokeWidth={1.75} />
+-          </button>
+-          <button className="discard-button" type="button" onClick={onClose}>
++          </Button>
++          <Button type="button" variant="ghost" onClick={closeDialog}>
+             Discard
+-          </button>
++          </Button>
+         </div>
+       }
+     >
+-      <Input placeholder="To" aria-label="Recipient" value={to} onChange={(event) => setTo(event.target.value)} />
+-      <Input
+-        placeholder="Subject"
+-        aria-label="Subject"
+-        value={subject}
+-        onChange={(event) => setSubject(event.target.value)}
+-      />
+-      <textarea
+-        aria-label="Message"
+-        placeholder="Write your message…"
+-        value={body}
+-        onChange={(event) => setBody(event.target.value)}
+-      />
+-      {validation ? <p className="compose-validation">{validation}</p> : null}
++      <form id="compose-form" className="compose-form" onSubmit={(event) => void handleSend(event)}>
++        <FormField label="To" htmlFor="compose-to" error={validation.to}>
++          <Input
++            id="compose-to"
++            placeholder="name@example.com"
++            value={to}
++            onChange={(event) => {
++              setTo(event.target.value)
++              setValidation((current) => ({ ...current, to: undefined }))
++            }}
++          />
++        </FormField>
++        <FormField label="Cc" htmlFor="compose-cc">
++          <ChipInput
++            id="compose-cc"
++            label="Cc recipients"
++            value={cc}
++            onChange={setCc}
++            placeholder="Add recipient and press Enter"
++          />
++        </FormField>
++        <FormField label="Bcc" htmlFor="compose-bcc">
++          <ChipInput
++            id="compose-bcc"
++            label="Bcc recipients"
++            value={bcc}
++            onChange={setBcc}
++            placeholder="Add recipient and press Enter"
++          />
++        </FormField>
++        <FormField label="Subject" htmlFor="compose-subject" error={validation.subject}>
++          <Input
++            id="compose-subject"
++            placeholder="Subject"
++            value={subject}
++            onChange={(event) => {
++              setSubject(event.target.value)
++              setValidation((current) => ({ ...current, subject: undefined }))
++            }}
++          />
++        </FormField>
++        <FormField label="Message" htmlFor="compose-body" error={validation.body}>
++          <TextArea
++            id="compose-body"
++            placeholder="Write your message…"
++            value={body}
++            onChange={(event) => {
++              setBody(event.target.value)
++              setValidation((current) => ({ ...current, body: undefined }))
++            }}
++          />
++        </FormField>
++        <FormField label="Attachments" htmlFor="compose-attachments">
++          <ChipInput
++            id="compose-attachments"
++            label="Attachments"
++            value={attachments}
++            onChange={setAttachments}
++            placeholder="Add filename and press Enter"
++          />
++        </FormField>
++        {error ? (
++          <p className="compose-mutation-error" role="alert">
++            {error.message}
++          </p>
++        ) : null}
++      </form>
+     </Dialog>
+   )
+ }
+diff --git a/client/src/features/mail/MailCard.tsx b/client/src/features/mail/MailCard.tsx
+index 6399447..f7b93f2 100644
+--- a/client/src/features/mail/MailCard.tsx
++++ b/client/src/features/mail/MailCard.tsx
+@@ -1,7 +1,7 @@
+ import { Paperclip, Star } from 'lucide-react'
+-import type { Mail } from '../../data/mockMail'
++import type { Mail } from '../../api/mail'
+ import { Avatar } from '../../components/ui/avatar'
+ import { Badge } from '../../components/ui/badge'
+ import { IconButton } from '../../components/ui/icon-button'
+ 
+ const stroke = 1.75
+diff --git a/client/src/features/mail/MailWorkspace.tsx b/client/src/features/mail/MailWorkspace.tsx
+index c07fe05..521ab8b 100644
+--- a/client/src/features/mail/MailWorkspace.tsx
++++ b/client/src/features/mail/MailWorkspace.tsx
+@@ -1,18 +1,17 @@
+-import { PanelLeft, PanelRight, PenLine, SquareArrowOutUpRight } from 'lucide-react'
++import { PanelLeft, PanelRight } from 'lucide-react'
+ import { useQuery } from '@tanstack/react-query'
+ import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
+-import { Button } from '../../components/ui/button'
+ import { StorageMeter } from '../../components/ui/storage-meter'
+ import { useMailUiStore } from '../../stores/mailUiStore'
+ import { useShellStore } from '../../stores/shellStore'
+ import { mailQueries } from './queries'
+ import { MailSidebar } from './MailSidebar'
+ import { MessageList } from './MessageList'
+ import { ReaderPanel } from './ReaderPanel'
+ import { ComposeDialog } from './ComposeDialog'
+-import type { Mail } from '../../data/mockMail'
++import type { Mail } from '../../api/mail'
+ import './mail.css'
+ 
+ const emptyMessages: Mail[] = []
+ 
+ export function MailWorkspace() {
+@@ -33,17 +32,10 @@ export function MailWorkspace() {
+   const showInboxDetail = layoutMode === 'inbox' && inboxDetailOpen
+ 
+   return (
+     <AppShell
+       workspaceClassName={layoutMode === 'inbox' ? 'workspace-inbox' : undefined}
+-      primaryAction={
+-        <Button aria-label="Compose new message" className="compose-button" onClick={() => setComposeOpen(true)}>
+-          <PenLine size={18} strokeWidth={1.75} />
+-          <span className="compose-label">Compose</span>
+-          <SquareArrowOutUpRight className="compose-external" size={16} strokeWidth={1.75} />
+-        </Button>
+-      }
+       sidebar={<MailSidebar />}
+       dock={
+         <>
+           <div className="sidebar-controls">
+             <div className="layout-switcher" aria-label="Inbox layout">
+diff --git a/client/src/features/mail/MessageList.tsx b/client/src/features/mail/MessageList.tsx
+index bf52a0d..a85662d 100644
+--- a/client/src/features/mail/MessageList.tsx
++++ b/client/src/features/mail/MessageList.tsx
+@@ -1,16 +1,16 @@
+ import { useMemo } from 'react'
+-import { Filter, MoreHorizontal } from 'lucide-react'
++import { Filter, MoreHorizontal, PenLine } from 'lucide-react'
+ import { useQuery } from '@tanstack/react-query'
+ import { mailQueries } from './queries'
+ import { MailCard } from './MailCard'
+ import { useMailUiStore } from '../../stores/mailUiStore'
+ import { Button } from '../../components/ui/button'
+ import { SearchField } from '../../components/ui/search-field'
+ import { QueryState } from '../../components/ui/query-state'
+ import { SkeletonRow } from '../../components/ui/skeleton'
+-import type { Mail } from '../../data/mockMail'
++import type { Mail } from '../../api/mail'
+ 
+ const emptyMessages: Mail[] = []
+ 
+ export function MessageList() {
+   const { data, isPending, isError, error, refetch, isFetching } = useQuery(mailQueries.mailbox())
+@@ -22,24 +22,26 @@ export function MessageList() {
+   const setFilterOpen = useMailUiStore((state) => state.setFilterOpen)
+   const layoutMode = useMailUiStore((state) => state.layoutMode)
+   const selectedId = useMailUiStore((state) => state.selectedId)
+   const setSelectedId = useMailUiStore((state) => state.setSelectedId)
+   const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
++  const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
+   const starredIds = useMailUiStore((state) => state.starredIds)
+   const toggleStar = useMailUiStore((state) => state.toggleStar)
+ 
+   const messages = data?.messages ?? emptyMessages
+   const visibleMessages = useMemo(() => {
++    const folderMessages = messages.filter((message) => message.folder === activeFolder)
+     const normalizedSearch = search.trim().toLowerCase()
+-    if (!normalizedSearch) return messages
+-    return messages.filter((message) =>
++    if (!normalizedSearch) return folderMessages
++    return folderMessages.filter((message) =>
+       [message.sender, message.subject, message.preview, ...message.labels]
+         .join(' ')
+         .toLowerCase()
+         .includes(normalizedSearch),
+     )
+-  }, [messages, search])
++  }, [activeFolder, messages, search])
+ 
+   return (
+     <>
+       <div className="search-row">
+         <SearchField
+@@ -57,10 +59,13 @@ export function MessageList() {
+           <p>
+             {(data?.messages.length ?? 0).toLocaleString()} Messages <span>•</span> <strong>167 Unread</strong>
+           </p>
+         </div>
+         <div className="heading-actions">
++          <Button size="sm" onClick={() => setComposeOpen(true)}>
++            <PenLine size={16} strokeWidth={1.75} /> Compose
++          </Button>
+           <button
+             className={filterOpen ? 'filter-button active' : 'filter-button'}
+             type="button"
+             onClick={toggleFilterOpen}
+           >
+diff --git a/client/src/features/mail/ReaderPanel.tsx b/client/src/features/mail/ReaderPanel.tsx
+index 71ce4ca..ced1ac8 100644
+--- a/client/src/features/mail/ReaderPanel.tsx
++++ b/client/src/features/mail/ReaderPanel.tsx
+@@ -1,7 +1,7 @@
+ import { ArrowLeft, FileText, Info, Send, Star, X } from 'lucide-react'
+-import type { Mail } from '../../data/mockMail'
++import type { Mail } from '../../api/mail'
+ import { Avatar } from '../../components/ui/avatar'
+ import { Badge } from '../../components/ui/badge'
+ import { Button } from '../../components/ui/button'
+ import { IconButton } from '../../components/ui/icon-button'
+ 
+diff --git a/client/src/features/mail/mail.css b/client/src/features/mail/mail.css
+index 932c183..0c67c0f 100644
+--- a/client/src/features/mail/mail.css
++++ b/client/src/features/mail/mail.css
+@@ -1,9 +1,20 @@
+-.compose-validation {
++.compose-form {
++  display: flex;
++  flex-direction: column;
++  gap: 14px;
++}
++
++.compose-mutation-error {
+   color: #ff9ac5;
+   font-size: 13px;
+   margin: 0;
+ }
+ 
+-.send-button:disabled {
++.compose-form + .ui-dialog-footer .ui-button {
++  gap: 8px;
++}
++
++.compose-form + .ui-dialog-footer .ui-button:disabled {
++  cursor: wait;
+   opacity: 0.75;
+ }
+diff --git a/client/src/features/mail/mutations.ts b/client/src/features/mail/mutations.ts
+new file mode 100644
+index 0000000..db60fca
+--- /dev/null
++++ b/client/src/features/mail/mutations.ts
+@@ -0,0 +1,21 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { createMessage, type CreateMessageInput } from '../../api/mail'
++import { useMailUiStore } from '../../stores/mailUiStore'
++import { mailQueries } from './queries'
++
++export function useCreateMessage() {
++  const queryClient = useQueryClient()
++  const setSelectedId = useMailUiStore((state) => state.setSelectedId)
++  const setActiveFolder = useMailUiStore((state) => state.setActiveFolder)
++  const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
++
++  return useMutation({
++    mutationFn: (input: CreateMessageInput) => createMessage(input),
++    onSuccess: async (message) => {
++      await queryClient.invalidateQueries({ queryKey: mailQueries.mailbox().queryKey })
++      setActiveFolder('Sent')
++      setSelectedId(message.id)
++      setComposeOpen(false)
++    },
++  })
++}
+diff --git a/client/src/stores/calendarUiStore.ts b/client/src/stores/calendarUiStore.ts
+index f6443e4..7ce4a68 100644
+--- a/client/src/stores/calendarUiStore.ts
++++ b/client/src/stores/calendarUiStore.ts
+@@ -4,22 +4,26 @@ export type CalendarViewMode = 'month' | 'week' | 'day' | 'year' | 'fourWeek'
+ 
+ type CalendarUiState = {
+   viewMode: CalendarViewMode
+   focusDate: string
+   selectedEventId: string
++  createOpen: boolean
+   setViewMode: (viewMode: CalendarViewMode) => void
+   setFocusDate: (focusDate: string) => void
+   setSelectedEventId: (id: string) => void
++  setCreateOpen: (open: boolean) => void
+ }
+ 
+ export const useCalendarUiStore = create<CalendarUiState>()((set) => ({
+   viewMode: 'month',
+   focusDate: '2026-08-12',
+   selectedEventId: 'steering',
++  createOpen: false,
+   setViewMode: (viewMode) => set({ viewMode }),
+   setFocusDate: (focusDate) => set({ focusDate }),
+   setSelectedEventId: (selectedEventId) => set({ selectedEventId }),
++  setCreateOpen: (createOpen) => set({ createOpen }),
+ }))
+ 
+ export const calendarViewOptions: { id: CalendarViewMode; label: string }[] = [
+   { id: 'day', label: 'Day' },
+   { id: 'week', label: 'Week' },
+diff --git a/client/src/stores/contactsUiStore.ts b/client/src/stores/contactsUiStore.ts
+new file mode 100644
+index 0000000..a5f7227
+--- /dev/null
++++ b/client/src/stores/contactsUiStore.ts
+@@ -0,0 +1,15 @@
++import { create } from 'zustand'
++
++type ContactsUiState = {
++  selectedId: string
++  createOpen: boolean
++  setSelectedId: (id: string) => void
++  setCreateOpen: (open: boolean) => void
++}
++
++export const useContactsUiStore = create<ContactsUiState>()((set) => ({
++  selectedId: 'avery',
++  createOpen: false,
++  setSelectedId: (selectedId) => set({ selectedId }),
++  setCreateOpen: (createOpen) => set({ createOpen }),
++}))

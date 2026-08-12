@@ -1,35 +1,58 @@
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { PanelLeft, PanelRight } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
-import { StorageMeter } from '../../components/ui/storage-meter'
+import { AppShell } from '../../components/shell/AppShell'
+import { AccountDock } from '../auth/AccountDock'
+import { ShortcutHelp } from './ShortcutHelp'
 import { useMailUiStore } from '../../stores/mailUiStore'
-import { useShellStore } from '../../stores/shellStore'
 import { mailQueries } from './queries'
+import { useMailShortcuts } from './useMailShortcuts'
+import { useMarkSeen, useMoveMessage, useRoleFolders, useToggleFlagged } from './mutations'
 import { MailSidebar } from './MailSidebar'
 import { MessageList } from './MessageList'
 import { ReaderPanel } from './ReaderPanel'
-import { ComposeDialog } from './ComposeDialog'
-import type { Mail } from '../../api/mail'
+import { ComposePanel } from './ComposePanel'
 import './mail.css'
 
-const emptyMessages: Mail[] = []
-
 export function MailWorkspace() {
-  const { data } = useQuery(mailQueries.mailbox())
   const layoutMode = useMailUiStore((state) => state.layoutMode)
   const setLayoutMode = useMailUiStore((state) => state.setLayoutMode)
   const inboxDetailOpen = useMailUiStore((state) => state.inboxDetailOpen)
   const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
-  const selectedId = useMailUiStore((state) => state.selectedId)
-  const starredIds = useMailUiStore((state) => state.starredIds)
-  const toggleStar = useMailUiStore((state) => state.toggleStar)
-  const composeOpen = useMailUiStore((state) => state.composeOpen)
-  const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
-  const sidebarCollapsed = useShellStore((state) => state.sidebarCollapsed)
 
-  const messages = data?.messages ?? emptyMessages
-  const selectedMail = messages.find((message) => message.id === selectedId) ?? messages[0]
-  const showInboxDetail = layoutMode === 'inbox' && inboxDetailOpen
+  const composeOpen = useMailUiStore((state) => state.composeOpen)
+  const folder = useMailUiStore((state) => state.folder)
+  const selectedUid = useMailUiStore((state) => state.selectedUid)
+  const setSelectedUid = useMailUiStore((state) => state.setSelectedUid)
+  const showInboxDetail = layoutMode === 'inbox' && (inboxDetailOpen || composeOpen)
+
+  const { data: pages } = useInfiniteQuery(mailQueries.messages(folder))
+  const listed = pages?.pages.flatMap((page) => page.messages) ?? []
+  const current = listed.find((message) => message.uid === selectedUid)
+  const { archive, spam, trash } = useRoleFolders()
+  const move = useMoveMessage()
+  const toggleFlagged = useToggleFlagged()
+  const markSeen = useMarkSeen()
+
+  // Every shortcut acts on the selected message, so each one is a no-op until something is selected.
+  const step = (delta: number) => {
+    if (!listed.length) return
+    const index = listed.findIndex((message) => message.uid === selectedUid)
+    const next = listed[Math.min(Math.max(index + delta, 0), listed.length - 1)] ?? listed[0]
+    if (next) setSelectedUid(next.uid)
+  }
+
+  useMailShortcuts({
+    next: () => step(1),
+    previous: () => step(-1),
+    open: () => layoutMode === 'inbox' && selectedUid !== null && setInboxDetailOpen(true),
+    back: () => setInboxDetailOpen(false),
+    star: () => current && toggleFlagged.mutate({ uid: current.uid, set: !current.flagged }),
+    markRead: () => current && markSeen.mutate({ uid: current.uid, set: true }),
+    markUnread: () => current && markSeen.mutate({ uid: current.uid, set: false }),
+    archive: () => current && archive && move.mutate({ uid: current.uid, to: archive }),
+    spam: () => current && spam && move.mutate({ uid: current.uid, to: spam }),
+    trash: () => current && trash && move.mutate({ uid: current.uid, to: trash }),
+  })
 
   return (
     <AppShell
@@ -59,43 +82,26 @@ export function MailWorkspace() {
                 <PanelLeft size={14} strokeWidth={1.75} /> <span>Inbox</span>
               </button>
             </div>
-            <ThemeToggle />
           </div>
-          <StorageMeter
-            used={data?.account.storageUsed}
-            limit={data?.account.storageLimit}
-            percent={data?.account.storagePercent}
-            collapsedLabel={
-              sidebarCollapsed
-                ? `${data?.account.storageUsed} / ${data?.account.storageLimit}`
-                : undefined
-            }
-          />
+          <AccountDock />
         </>
       }
     >
       <main className={showInboxDetail ? 'inbox-column inbox-reading' : 'inbox-column'}>
         {showInboxDetail ? (
-          <ReaderPanel
-            mail={selectedMail}
-            starred={selectedMail ? starredIds.includes(selectedMail.id) : false}
-            onBack={() => setInboxDetailOpen(false)}
-            onToggleStar={() => selectedMail && toggleStar(selectedMail.id)}
-          />
+          composeOpen ? (
+            <ComposePanel />
+          ) : (
+            <ReaderPanel onBack={() => setInboxDetailOpen(false)} />
+          )
         ) : (
           <MessageList />
         )}
       </main>
 
-      {layoutMode === 'split' ? (
-        <ReaderPanel
-          mail={selectedMail}
-          starred={selectedMail ? starredIds.includes(selectedMail.id) : false}
-          onToggleStar={() => selectedMail && toggleStar(selectedMail.id)}
-        />
-      ) : null}
+      {layoutMode === 'split' ? composeOpen ? <ComposePanel /> : <ReaderPanel /> : null}
 
-      <ComposeDialog open={composeOpen} onClose={() => setComposeOpen(false)} />
+      <ShortcutHelp />
     </AppShell>
   )
 }

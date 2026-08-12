@@ -1,0 +1,104 @@
+Commits:
+d2a8a0d fix: remove out-of-scope sidebar changes from ContactsWorkspace
+13239c0 feat: add createOpen UI state for calendar and contacts
+
+Stat:
+ client/src/features/contacts/ContactsWorkspace.tsx |  4 +++-
+ client/src/stores/calendarUiStore.ts               |  4 ++++
+ client/src/stores/contactsUiStore.ts               | 15 +++++++++++++++
+ 3 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/client/src/features/contacts/ContactsWorkspace.tsx b/client/src/features/contacts/ContactsWorkspace.tsx
+index 8fc68be..8f49287 100644
+--- a/client/src/features/contacts/ContactsWorkspace.tsx
++++ b/client/src/features/contacts/ContactsWorkspace.tsx
+@@ -3,27 +3,29 @@ import { useQuery } from '@tanstack/react-query'
+ import { Building2, Mail, Phone, UsersRound } from 'lucide-react'
+ import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
+ import { Avatar } from '../../components/ui/avatar'
+ import { SearchField } from '../../components/ui/search-field'
+ import { List, ListRow } from '../../components/ui/list'
+ import { Panel } from '../../components/ui/panel'
+ import { QueryState } from '../../components/ui/query-state'
+ import { SkeletonRow } from '../../components/ui/skeleton'
+ import { contactsQueries } from './queries'
+ import type { Contact } from '../../data/mockContacts'
++import { useContactsUiStore } from '../../stores/contactsUiStore'
+ import './contacts.css'
+ 
+ export function ContactsWorkspace() {
+   const { data, isPending, isError, error, refetch, isFetching } = useQuery(contactsQueries.contacts())
+   const contacts = useMemo(() => data?.contacts ?? [], [data?.contacts])
+   const [search, setSearch] = useState('')
+-  const [selectedId, setSelectedId] = useState('avery')
++  const selectedId = useContactsUiStore((state) => state.selectedId)
++  const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
+ 
+   const visible = useMemo(() => {
+     const normalized = search.trim().toLowerCase()
+     if (!normalized) return contacts
+     return contacts.filter((contact) =>
+       [contact.name, contact.email, contact.company, contact.role].join(' ').toLowerCase().includes(normalized),
+     )
+   }, [contacts, search])
+ 
+   const selected = visible.find((contact) => contact.id === selectedId) ?? visible[0] ?? contacts[0]
+diff --git a/client/src/stores/calendarUiStore.ts b/client/src/stores/calendarUiStore.ts
+index f6443e4..7ce4a68 100644
+--- a/client/src/stores/calendarUiStore.ts
++++ b/client/src/stores/calendarUiStore.ts
+@@ -1,29 +1,33 @@
+ import { create } from 'zustand'
+ 
+ export type CalendarViewMode = 'month' | 'week' | 'day' | 'year' | 'fourWeek'
+ 
+ type CalendarUiState = {
+   viewMode: CalendarViewMode
+   focusDate: string
+   selectedEventId: string
++  createOpen: boolean
+   setViewMode: (viewMode: CalendarViewMode) => void
+   setFocusDate: (focusDate: string) => void
+   setSelectedEventId: (id: string) => void
++  setCreateOpen: (open: boolean) => void
+ }
+ 
+ export const useCalendarUiStore = create<CalendarUiState>()((set) => ({
+   viewMode: 'month',
+   focusDate: '2026-08-12',
+   selectedEventId: 'steering',
++  createOpen: false,
+   setViewMode: (viewMode) => set({ viewMode }),
+   setFocusDate: (focusDate) => set({ focusDate }),
+   setSelectedEventId: (selectedEventId) => set({ selectedEventId }),
++  setCreateOpen: (createOpen) => set({ createOpen }),
+ }))
+ 
+ export const calendarViewOptions: { id: CalendarViewMode; label: string }[] = [
+   { id: 'day', label: 'Day' },
+   { id: 'week', label: 'Week' },
+   { id: 'month', label: 'Month' },
+   { id: 'fourWeek', label: '4 Weeks' },
+   { id: 'year', label: 'Year' },
+ ]
+diff --git a/client/src/stores/contactsUiStore.ts b/client/src/stores/contactsUiStore.ts
+new file mode 100644
+index 0000000..a5f7227
+--- /dev/null
++++ b/client/src/stores/contactsUiStore.ts
+@@ -0,0 +1,15 @@
++import { create } from 'zustand'
++
++type ContactsUiState = {
++  selectedId: string
++  createOpen: boolean
++  setSelectedId: (id: string) => void
++  setCreateOpen: (open: boolean) => void
++}
++
++export const useContactsUiStore = create<ContactsUiState>()((set) => ({
++  selectedId: 'avery',
++  createOpen: false,
++  setSelectedId: (selectedId) => set({ selectedId }),
++  setCreateOpen: (createOpen) => set({ createOpen }),
++}))

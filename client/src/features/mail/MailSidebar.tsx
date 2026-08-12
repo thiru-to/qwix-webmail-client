@@ -1,52 +1,92 @@
+import type { MailFolder } from '@api/types'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   AlertCircle,
   Archive,
-  Clock3,
   FileText,
+  Folder,
   Inbox,
+  Layers,
   Send,
   Star,
   Trash2,
-  Tag,
-  Plus,
-  ChevronDown,
+  type LucideIcon,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { mailQueries } from './queries'
 import { useMailUiStore } from '../../stores/mailUiStore'
 import { useShellStore } from '../../stores/shellStore'
 import { SkeletonRow } from '../../components/ui/skeleton'
 import { QueryState } from '../../components/ui/query-state'
-
-const iconMap = {
-  inbox: Inbox,
-  star: Star,
-  clock: Clock3,
-  send: Send,
-  file: FileText,
-  archive: Archive,
-  alert: AlertCircle,
-  trash: Trash2,
-} as const
+import { LabelSection } from '../labels/LabelSection'
 
 const stroke = 1.75
 
-function FolderIcon({ name }: { name: keyof typeof iconMap }) {
-  const Icon = iconMap[name]
-  return <Icon size={18} strokeWidth={stroke} />
+// Ordered as a mail client presents them; anything without a special use drops into "Other".
+const SPECIAL_USE: { use: string; icon: LucideIcon }[] = [
+  { use: '\\Inbox', icon: Inbox },
+  { use: '\\Drafts', icon: FileText },
+  { use: '\\Sent', icon: Send },
+  { use: '\\Flagged', icon: Star },
+  { use: '\\Archive', icon: Archive },
+  { use: '\\Junk', icon: AlertCircle },
+  { use: '\\Trash', icon: Trash2 },
+  { use: '\\All', icon: Layers },
+]
+
+const iconFor = (folder: MailFolder) =>
+  SPECIAL_USE.find((entry) => entry.use === folder.specialUse)?.icon ??
+  (folder.path.toUpperCase() === 'INBOX' ? Inbox : Folder)
+
+function partition(folders: MailFolder[]) {
+  const primary: MailFolder[] = []
+  const other: MailFolder[] = []
+
+  for (const folder of folders) {
+    const special = SPECIAL_USE.some((entry) => entry.use === folder.specialUse)
+    ;(special || folder.path.toUpperCase() === 'INBOX' ? primary : other).push(folder)
+  }
+
+  const rank = (folder: MailFolder) => {
+    const index = SPECIAL_USE.findIndex((entry) => entry.use === folder.specialUse)
+    return index === -1 ? (folder.path.toUpperCase() === 'INBOX' ? 0 : SPECIAL_USE.length) : index
+  }
+
+  primary.sort((a, b) => rank(a) - rank(b))
+  other.sort((a, b) => a.path.localeCompare(b.path))
+  return { primary, other }
+}
+
+function FolderList({ folders, label }: { folders: MailFolder[]; label: string }) {
+  const activeFolder = useMailUiStore((state) => state.folder)
+  const setFolder = useMailUiStore((state) => state.setFolder)
+  const sidebarCollapsed = useShellStore((state) => state.sidebarCollapsed)
+
+  return (
+    <nav className="folder-list" aria-label={label}>
+      {folders.map((folder) => {
+        const Icon = iconFor(folder)
+        return (
+          <button
+            className={activeFolder === folder.path ? 'folder-item active' : 'folder-item'}
+            key={folder.path}
+            title={sidebarCollapsed ? folder.name : undefined}
+            type="button"
+            onClick={() => setFolder(folder.path)}
+          >
+            <Icon size={18} strokeWidth={stroke} />
+            <span>{folder.name}</span>
+            <span className="folder-count">{folder.unseen || folder.total || ''}</span>
+          </button>
+        )
+      })}
+    </nav>
+  )
 }
 
 export function MailSidebar() {
-  const { data, isPending, isError, error, refetch, isFetching } = useQuery(mailQueries.mailbox())
-  const activeFolder = useMailUiStore((state) => state.activeFolder)
-  const setActiveFolder = useMailUiStore((state) => state.setActiveFolder)
-  const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
-  const sidebarCollapsed = useShellStore((state) => state.sidebarCollapsed)
-
-  function selectFolder(name: string) {
-    setActiveFolder(name)
-    setInboxDetailOpen(false)
-  }
+  const { data, isPending, isError, error, refetch, isFetching } = useQuery(mailQueries.folders())
+  const { primary, other } = useMemo(() => partition(data ?? []), [data])
 
   return (
     <QueryState
@@ -62,68 +102,18 @@ export function MailSidebar() {
         </div>
       }
     >
-      <nav className="folder-list" aria-label="Folders">
-        {data?.folders.map((folder) => (
-          <button
-            className={activeFolder === folder.name ? 'folder-item active' : 'folder-item'}
-            key={folder.name}
-            title={sidebarCollapsed ? folder.name : undefined}
-            type="button"
-            onClick={() => selectFolder(folder.name)}
-          >
-            <FolderIcon name={folder.icon as keyof typeof iconMap} />
-            <span>{folder.name}</span>
-            <span className="folder-count">{folder.count}</span>
-          </button>
-        ))}
-      </nav>
+      <FolderList folders={primary} label="Folders" />
 
-      <div className="sidebar-section">
-        <button className="section-heading" type="button">
-          <span>Other</span>
-          <ChevronDown size={14} strokeWidth={stroke} />
-        </button>
-        <nav className="folder-list" aria-label="Other folders">
-          {data?.secondaryFolders.map((folder) => (
-            <button
-              className="folder-item"
-              key={folder.name}
-              title={sidebarCollapsed ? folder.name : undefined}
-              type="button"
-              onClick={() => selectFolder(folder.name)}
-            >
-              <FolderIcon name={folder.icon as keyof typeof iconMap} />
-              <span>{folder.name}</span>
-              <span className="folder-count">{folder.count}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
+      {other.length ? (
+        <div className="sidebar-section">
+          <div className="section-heading">
+            <span>Other</span>
+          </div>
+          <FolderList folders={other} label="Other folders" />
+        </div>
+      ) : null}
 
-      <div className="sidebar-section labels-section">
-        <button className="section-heading" type="button">
-          <span>Labels</span>
-          <ChevronDown size={14} strokeWidth={stroke} />
-        </button>
-        <nav className="folder-list" aria-label="Labels">
-          {data?.labels.map((label) => (
-            <button
-              className="folder-item"
-              key={label.name}
-              title={sidebarCollapsed ? label.name : undefined}
-              type="button"
-              onClick={() => selectFolder(label.name)}
-            >
-              <Tag size={18} strokeWidth={stroke} className={`label-icon ${label.color}`} />
-              <span>{label.name}</span>
-              <span className="folder-count">{label.count}</span>
-            </button>
-          ))}
-          <button className="add-label" type="button">
-            <Plus size={16} strokeWidth={stroke} /> <span>Add labels</span>
-          </button>
-        </nav>
-      </div>
+      <LabelSection />
     </QueryState>
   )
 }

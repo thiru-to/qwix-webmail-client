@@ -1,53 +1,61 @@
+import type { ContactItem, Typed } from '@api/types'
 import { useState, type FormEvent } from 'react'
-import type { CreateContactInput } from '../../api/contacts'
 import { Button } from '../../components/ui/button'
+import { ChipInput } from '../../components/ui/chip-input'
 import { FormField } from '../../components/ui/form-field'
 import { Input } from '../../components/ui/input'
 import { SidePanel } from '../../components/ui/side-panel'
 import { Spinner } from '../../components/ui/spinner'
 import { TextArea } from '../../components/ui/textarea'
-import { TonePicker } from '../../components/ui/tone-picker'
 import { useContactsUiStore } from '../../stores/contactsUiStore'
-import { useCreateContact } from './mutations'
+import { useCreateContact, useUpdateContact } from './mutations'
 
-type ValidationErrors = Partial<Record<'name' | 'email', string>>
+type ValidationErrors = Partial<Record<'name' | 'emails', string>>
 
-const toneOptions = [
-  { id: 'rose', label: 'Rose' },
-  { id: 'green', label: 'Green' },
-  { id: 'purple', label: 'Purple' },
-  { id: 'orange', label: 'Orange' },
-  { id: 'plum', label: 'Plum' },
-] satisfies { id: CreateContactInput['avatarTone']; label: string }[]
+/** Keep the vCard TYPE that came with an address; only newly typed ones need a default. */
+const retype = (values: string[], existing: Typed[], fallback: string): Typed[] =>
+  values.map((value) => ({ value, type: existing.find((entry) => entry.value === value)?.type ?? fallback }))
 
-export function ContactFormPanel() {
-  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [company, setCompany] = useState('')
-  const [role, setRole] = useState('')
-  const [notes, setNotes] = useState('')
-  const [avatarTone, setAvatarTone] = useState<CreateContactInput['avatarTone']>('plum')
+export function ContactFormPanel({ contact }: { contact?: ContactItem }) {
+  const setPanel = useContactsUiStore((state) => state.setPanel)
+  const [name, setName] = useState(contact?.name ?? '')
+  const [emails, setEmails] = useState<string[]>(contact?.emails.map((entry) => entry.value) ?? [])
+  const [phones, setPhones] = useState<string[]>(contact?.phones.map((entry) => entry.value) ?? [])
+  const [organization, setOrganization] = useState(contact?.organization ?? '')
+  const [title, setTitle] = useState(contact?.title ?? '')
+  const [note, setNote] = useState(contact?.note ?? '')
   const [validation, setValidation] = useState<ValidationErrors>({})
-  const { mutateAsync, isPending, error } = useCreateContact()
+
+  const create = useCreateContact()
+  const update = useUpdateContact()
+  const { isPending, error } = contact ? update : create
 
   function closePanel() {
-    setCreateOpen(false)
+    setPanel('none')
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextValidation: ValidationErrors = {
       ...(!name.trim() && { name: 'Add a contact name.' }),
-      ...(!email.trim() && { email: 'Add an email address.' }),
+      ...(!emails.length && { emails: 'Add at least one email address.' }),
     }
 
     setValidation(nextValidation)
     if (Object.keys(nextValidation).length > 0) return
 
+    const input = {
+      name: name.trim(),
+      emails: retype(emails, contact?.emails ?? [], 'work'),
+      phones: retype(phones, contact?.phones ?? [], 'cell'),
+      organization: organization.trim() || undefined,
+      title: title.trim() || undefined,
+      note: note.trim() || undefined,
+    }
+
     try {
-      await mutateAsync({ name, email, phone, company, role, notes, avatarTone })
+      if (contact) await update.mutateAsync({ ...input, url: contact.url, etag: contact.etag })
+      else await create.mutateAsync(input)
     } catch {
       // The mutation error is rendered inline below the form.
     }
@@ -58,25 +66,21 @@ export function ContactFormPanel() {
       open
       onClose={closePanel}
       eyebrow="Contacts"
-      title="New contact"
+      title={contact ? 'Edit contact' : 'New contact'}
       className="contact-form-panel"
       footer={
         <div className="contact-form-actions">
-          <Button type="submit" form="contact-create-form" disabled={isPending}>
+          <Button type="submit" form="contact-form" disabled={isPending}>
             {isPending ? <Spinner size={14} /> : null}
             Save
           </Button>
           <Button type="button" variant="ghost" onClick={closePanel} disabled={isPending}>
-            Discard
+            Cancel
           </Button>
         </div>
       }
     >
-      <form
-        id="contact-create-form"
-        className="contact-form"
-        onSubmit={(event) => void handleSubmit(event)}
-      >
+      <form id="contact-form" className="contact-form" onSubmit={(event) => void handleSubmit(event)}>
         <FormField label="Name" htmlFor="contact-name" error={validation.name}>
           <Input
             id="contact-name"
@@ -89,41 +93,41 @@ export function ContactFormPanel() {
             placeholder="Full name"
           />
         </FormField>
-        <FormField label="Email" htmlFor="contact-email" error={validation.email}>
-          <Input
-            id="contact-email"
-            type="email"
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value)
-              setValidation((current) => ({ ...current, email: undefined }))
+        <FormField label="Email" htmlFor="contact-emails" error={validation.emails}>
+          <ChipInput
+            id="contact-emails"
+            label="Email addresses"
+            value={emails}
+            onChange={(next) => {
+              setEmails(next)
+              setValidation((current) => ({ ...current, emails: undefined }))
             }}
-            placeholder="name@example.com"
+            placeholder="name@example.com, then Enter"
           />
         </FormField>
-        <FormField label="Phone" htmlFor="contact-phone">
-          <Input
-            id="contact-phone"
-            type="tel"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            placeholder="+1 555 0100"
+        <FormField label="Phone" htmlFor="contact-phones">
+          <ChipInput
+            id="contact-phones"
+            label="Phone numbers"
+            value={phones}
+            onChange={setPhones}
+            placeholder="+1 555 0100, then Enter"
           />
         </FormField>
         <div className="contact-form-row">
           <FormField label="Company" htmlFor="contact-company">
             <Input
               id="contact-company"
-              value={company}
-              onChange={(event) => setCompany(event.target.value)}
+              value={organization}
+              onChange={(event) => setOrganization(event.target.value)}
               placeholder="Company"
             />
           </FormField>
           <FormField label="Role" htmlFor="contact-role">
             <Input
               id="contact-role"
-              value={role}
-              onChange={(event) => setRole(event.target.value)}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
               placeholder="Role"
             />
           </FormField>
@@ -131,17 +135,9 @@ export function ContactFormPanel() {
         <FormField label="Notes" htmlFor="contact-notes">
           <TextArea
             id="contact-notes"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
             placeholder="Add contact notes…"
-          />
-        </FormField>
-        <FormField label="Avatar color" htmlFor="contact-avatar-tone">
-          <TonePicker
-            value={avatarTone}
-            onChange={(value) => setAvatarTone(value as CreateContactInput['avatarTone'])}
-            options={toneOptions}
-            label="Avatar color"
           />
         </FormField>
         {error ? (

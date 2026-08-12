@@ -1,21 +1,37 @@
+import type { ContactInput, ContactUpdate } from '@api/types'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createContact, type CreateContactInput } from '../../api/contacts'
+import { createContact, updateContact } from '../../api/contacts'
 import { useContactsUiStore } from '../../stores/contactsUiStore'
 import { contactsQueries } from './queries'
 
 export function useCreateContact() {
   const queryClient = useQueryClient()
   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
-  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
+  const setPanel = useContactsUiStore((state) => state.setPanel)
   const setSearch = useContactsUiStore((state) => state.setSearch)
 
   return useMutation({
-    mutationFn: (input: CreateContactInput) => createContact(input),
+    mutationFn: (input: ContactInput) => createContact(input),
     onSuccess: async (contact) => {
       await queryClient.invalidateQueries({ queryKey: contactsQueries.contacts().queryKey })
       setSearch('')
       setSelectedId(contact.id)
-      setCreateOpen(false)
+      setPanel('none')
+    },
+  })
+}
+
+export function useUpdateContact() {
+  const queryClient = useQueryClient()
+  const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
+  const setPanel = useContactsUiStore((state) => state.setPanel)
+
+  return useMutation({
+    mutationFn: (input: ContactUpdate) => updateContact(input),
+    onSuccess: async (contact) => {
+      await queryClient.invalidateQueries({ queryKey: contactsQueries.contacts().queryKey })
+      setSelectedId(contact.id)
+      setPanel('none')
     },
   })
 }

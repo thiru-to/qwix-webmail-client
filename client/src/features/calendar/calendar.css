@@ -11,8 +11,8 @@
 
 .view-switcher {
   align-items: center;
-  background: #0e141e;
-  border: 1px solid #2b374b;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
   border-radius: 12px;
   display: flex;
   gap: 2px;
@@ -23,7 +23,7 @@
   background: transparent;
   border: 0;
   border-radius: 9px;
-  color: #79869a;
+  color: var(--muted);
   font-size: 12px;
   min-height: 32px;
   padding: 0 10px;
@@ -443,7 +443,7 @@
 }
 
 .theme-light .view-option {
-  color: #718096;
+  color: #3a4658;
 }
 
 .theme-light .view-option.active {
@@ -479,3 +479,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+.time-grid-allday {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 64px repeat(7, minmax(0, 1fr));
+  padding: 6px 0;
+}
+
+.day-view .time-grid-allday {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+.time-grid-allday .time-gutter-spacer { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.allday-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }

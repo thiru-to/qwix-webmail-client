@@ -1,0 +1,463 @@
+Commits:
+0f144f6 fix: resolve contact selection from full list after create
+9644d90 feat: add New Contact side panel with mock API persistence
+
+Stat:
+ client/src/api/contacts.ts                         |   2 +
+ client/src/features/contacts/ContactFormPanel.tsx  | 149 +++++++++++++++++++++
+ client/src/features/contacts/ContactsWorkspace.tsx |  79 ++++++-----
+ client/src/features/contacts/contacts.css          |  46 +++++++
+ client/src/features/contacts/mutations.ts          |  19 +++
+ 5 files changed, 262 insertions(+), 33 deletions(-)
+
+diff --git a/client/src/api/contacts.ts b/client/src/api/contacts.ts
+index 8fd326b..d7084c6 100644
+--- a/client/src/api/contacts.ts
++++ b/client/src/api/contacts.ts
+@@ -1,19 +1,21 @@
+ import {
+   appendContact,
+   contactsData,
+   initialsFromName,
+   type Contact,
+   type ContactsData,
+ } from '../data/mockContacts'
+ import { delay, maybeFail } from './client'
+ 
++export type { Contact, ContactsData }
++
+ export type CreateContactInput = {
+   name: string
+   email: string
+   phone: string
+   company: string
+   role: string
+   notes: string
+   avatarTone: Contact['avatarTone']
+ }
+ 
+diff --git a/client/src/features/contacts/ContactFormPanel.tsx b/client/src/features/contacts/ContactFormPanel.tsx
+new file mode 100644
+index 0000000..df5a4f1
+--- /dev/null
++++ b/client/src/features/contacts/ContactFormPanel.tsx
+@@ -0,0 +1,149 @@
++import { useState, type FormEvent } from 'react'
++import type { CreateContactInput } from '../../api/contacts'
++import { Button } from '../../components/ui/button'
++import { FormField } from '../../components/ui/form-field'
++import { Input } from '../../components/ui/input'
++import { SidePanel } from '../../components/ui/side-panel'
++import { Spinner } from '../../components/ui/spinner'
++import { TextArea } from '../../components/ui/textarea'
++import { TonePicker } from '../../components/ui/tone-picker'
++import { useContactsUiStore } from '../../stores/contactsUiStore'
++import { useCreateContact } from './mutations'
++
++type ValidationErrors = Partial<Record<'name' | 'email', string>>
++
++const toneOptions = [
++  { id: 'rose', label: 'Rose' },
++  { id: 'green', label: 'Green' },
++  { id: 'purple', label: 'Purple' },
++  { id: 'orange', label: 'Orange' },
++  { id: 'plum', label: 'Plum' },
++] satisfies { id: CreateContactInput['avatarTone']; label: string }[]
++
++export function ContactFormPanel() {
++  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
++  const [name, setName] = useState('')
++  const [email, setEmail] = useState('')
++  const [phone, setPhone] = useState('')
++  const [company, setCompany] = useState('')
++  const [role, setRole] = useState('')
++  const [notes, setNotes] = useState('')
++  const [avatarTone, setAvatarTone] = useState<CreateContactInput['avatarTone']>('plum')
++  const [validation, setValidation] = useState<ValidationErrors>({})
++  const { mutateAsync, isPending, error } = useCreateContact()
++
++  function closePanel() {
++    setCreateOpen(false)
++  }
++
++  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault()
++    const nextValidation: ValidationErrors = {
++      ...(!name.trim() && { name: 'Add a contact name.' }),
++      ...(!email.trim() && { email: 'Add an email address.' }),
++    }
++
++    setValidation(nextValidation)
++    if (Object.keys(nextValidation).length > 0) return
++
++    try {
++      await mutateAsync({ name, email, phone, company, role, notes, avatarTone })
++    } catch {
++      // The mutation error is rendered inline below the form.
++    }
++  }
++
++  return (
++    <SidePanel
++      open
++      onClose={closePanel}
++      eyebrow="Contacts"
++      title="New contact"
++      className="contact-form-panel"
++      footer={
++        <div className="contact-form-actions">
++          <Button type="submit" form="contact-create-form" disabled={isPending}>
++            {isPending ? <Spinner size={14} /> : null}
++            Save
++          </Button>
++          <Button type="button" variant="ghost" onClick={closePanel} disabled={isPending}>
++            Discard
++          </Button>
++        </div>
++      }
++    >
++      <form
++        id="contact-create-form"
++        className="contact-form"
++        onSubmit={(event) => void handleSubmit(event)}
++      >
++        <FormField label="Name" htmlFor="contact-name" error={validation.name}>
++          <Input
++            id="contact-name"
++            autoFocus
++            value={name}
++            onChange={(event) => setName(event.target.value)}
++            placeholder="Full name"
++          />
++        </FormField>
++        <FormField label="Email" htmlFor="contact-email" error={validation.email}>
++          <Input
++            id="contact-email"
++            type="email"
++            value={email}
++            onChange={(event) => setEmail(event.target.value)}
++            placeholder="name@example.com"
++          />
++        </FormField>
++        <FormField label="Phone" htmlFor="contact-phone">
++          <Input
++            id="contact-phone"
++            type="tel"
++            value={phone}
++            onChange={(event) => setPhone(event.target.value)}
++            placeholder="+1 555 0100"
++          />
++        </FormField>
++        <div className="contact-form-row">
++          <FormField label="Company" htmlFor="contact-company">
++            <Input
++              id="contact-company"
++              value={company}
++              onChange={(event) => setCompany(event.target.value)}
++              placeholder="Company"
++            />
++          </FormField>
++          <FormField label="Role" htmlFor="contact-role">
++            <Input
++              id="contact-role"
++              value={role}
++              onChange={(event) => setRole(event.target.value)}
++              placeholder="Role"
++            />
++          </FormField>
++        </div>
++        <FormField label="Notes" htmlFor="contact-notes">
++          <TextArea
++            id="contact-notes"
++            value={notes}
++            onChange={(event) => setNotes(event.target.value)}
++            placeholder="Add contact notes…"
++          />
++        </FormField>
++        <FormField label="Avatar color" htmlFor="contact-avatar-tone">
++          <TonePicker
++            value={avatarTone}
++            onChange={(value) => setAvatarTone(value as CreateContactInput['avatarTone'])}
++            options={toneOptions}
++            label="Avatar color"
++          />
++        </FormField>
++        {error ? (
++          <p className="contact-form-error" role="alert">
++            {error.message}
++          </p>
++        ) : null}
++      </form>
++    </SidePanel>
++  )
++}
+diff --git a/client/src/features/contacts/ContactsWorkspace.tsx b/client/src/features/contacts/ContactsWorkspace.tsx
+index 8f49287..cc9b14c 100644
+--- a/client/src/features/contacts/ContactsWorkspace.tsx
++++ b/client/src/features/contacts/ContactsWorkspace.tsx
+@@ -1,41 +1,45 @@
+ import { useMemo, useState } from 'react'
+ import { useQuery } from '@tanstack/react-query'
+ import { Building2, Mail, Phone, UsersRound } from 'lucide-react'
++import type { Contact } from '../../api/contacts'
+ import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
+ import { Avatar } from '../../components/ui/avatar'
++import { Button } from '../../components/ui/button'
+ import { SearchField } from '../../components/ui/search-field'
+ import { List, ListRow } from '../../components/ui/list'
+ import { Panel } from '../../components/ui/panel'
+ import { QueryState } from '../../components/ui/query-state'
+ import { SkeletonRow } from '../../components/ui/skeleton'
+-import { contactsQueries } from './queries'
+-import type { Contact } from '../../data/mockContacts'
+ import { useContactsUiStore } from '../../stores/contactsUiStore'
++import { ContactFormPanel } from './ContactFormPanel'
++import { contactsQueries } from './queries'
+ import './contacts.css'
+ 
+ export function ContactsWorkspace() {
+   const { data, isPending, isError, error, refetch, isFetching } = useQuery(contactsQueries.contacts())
+   const contacts = useMemo(() => data?.contacts ?? [], [data?.contacts])
+   const [search, setSearch] = useState('')
+   const selectedId = useContactsUiStore((state) => state.selectedId)
+   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
++  const createOpen = useContactsUiStore((state) => state.createOpen)
++  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
+ 
+   const visible = useMemo(() => {
+     const normalized = search.trim().toLowerCase()
+     if (!normalized) return contacts
+     return contacts.filter((contact) =>
+       [contact.name, contact.email, contact.company, contact.role].join(' ').toLowerCase().includes(normalized),
+     )
+   }, [contacts, search])
+ 
+-  const selected = visible.find((contact) => contact.id === selectedId) ?? visible[0] ?? contacts[0]
++  const selected = contacts.find((contact) => contact.id === selectedId) ?? visible[0] ?? contacts[0]
+ 
+   return (
+     <AppShell
+       workspaceClassName="workspace-inbox product-contacts"
+       sidebar={
+         <nav className="folder-list" aria-label="Contact groups">
+           <button className="folder-item active" type="button">
+             <UsersRound size={18} strokeWidth={1.75} />
+             <span>All contacts</span>
+             <span className="folder-count">{contacts.length || '—'}</span>
+@@ -75,70 +79,79 @@ export function ContactsWorkspace() {
+               <SkeletonRow />
+             </div>
+           }
+         >
+           <div className="contacts-split">
+             <Panel
+               eyebrow="Directory"
+               title="Contacts"
+               description={`${visible.length} people`}
+               className="contacts-list-panel"
++              actions={
++                <Button size="sm" onClick={() => setCreateOpen(true)}>
++                  New contact
++                </Button>
++              }
+             >
+               <List label="Contacts">
+                 {visible.length === 0 ? (
+                   <div className="loading-state">No contacts match “{search}”.</div>
+                 ) : (
+                   visible.map((contact) => (
+                     <ContactRow
+                       key={contact.id}
+                       contact={contact}
+                       selected={contact.id === selected?.id}
+                       onSelect={() => setSelectedId(contact.id)}
+                     />
+                   ))
+                 )}
+               </List>
+             </Panel>
+ 
+-            <section className="contacts-detail reader-panel">
+-              {selected ? (
+-                <>
+-                  <div className="reader-sender">
+-                    <Avatar initials={selected.initials} tone={selected.avatarTone} size="large" />
+-                    <div className="sender-details">
+-                      <h2>{selected.name}</h2>
++            {createOpen ? (
++              <ContactFormPanel />
++            ) : (
++              <section className="contacts-detail reader-panel">
++                {selected ? (
++                  <>
++                    <div className="reader-sender">
++                      <Avatar initials={selected.initials} tone={selected.avatarTone} size="large" />
++                      <div className="sender-details">
++                        <h2>{selected.name}</h2>
++                        <p>
++                          {selected.role}
++                          <br />
++                          {selected.company}
++                        </p>
++                      </div>
++                    </div>
++                    <div className="contact-fields">
++                      <p>
++                        <Mail size={15} strokeWidth={1.75} /> {selected.email}
++                      </p>
+                       <p>
+-                        {selected.role}
+-                        <br />
+-                        {selected.company}
++                        <Phone size={15} strokeWidth={1.75} /> {selected.phone}
+                       </p>
++                      <p>
++                        <Building2 size={15} strokeWidth={1.75} /> {selected.company}
++                      </p>
++                    </div>
++                    <div className="message-body">
++                      <p>{selected.notes}</p>
+                     </div>
+-                  </div>
+-                  <div className="contact-fields">
+-                    <p>
+-                      <Mail size={15} strokeWidth={1.75} /> {selected.email}
+-                    </p>
+-                    <p>
+-                      <Phone size={15} strokeWidth={1.75} /> {selected.phone}
+-                    </p>
+-                    <p>
+-                      <Building2 size={15} strokeWidth={1.75} /> {selected.company}
+-                    </p>
+-                  </div>
+-                  <div className="message-body">
+-                    <p>{selected.notes}</p>
+-                  </div>
+-                </>
+-              ) : (
+-                <p className="loading-state">Select a contact to view details.</p>
+-              )}
+-            </section>
++                  </>
++                ) : (
++                  <p className="loading-state">Select a contact to view details.</p>
++                )}
++              </section>
++            )}
+           </div>
+         </QueryState>
+       </main>
+     </AppShell>
+   )
+ }
+ 
+ function ContactRow({
+   contact,
+   selected,
+diff --git a/client/src/features/contacts/contacts.css b/client/src/features/contacts/contacts.css
+index d3ace84..cd4b9f8 100644
+--- a/client/src/features/contacts/contacts.css
++++ b/client/src/features/contacts/contacts.css
+@@ -8,20 +8,60 @@
+   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+ }
+ 
+ .contacts-detail {
+   border: 1px solid var(--card-border);
+   border-radius: 28px;
+   min-height: 420px;
+   padding: 8px 24px 24px;
+ }
+ 
++.contacts-split .contact-form-panel {
++  border: 1px solid var(--card-border);
++  border-radius: 22px;
++  min-height: 420px;
++}
++
++.contact-form {
++  display: flex;
++  flex-direction: column;
++  gap: 14px;
++}
++
++.contact-form-row {
++  display: grid;
++  gap: 12px;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++}
++
++.contact-form-actions {
++  align-items: center;
++  display: flex;
++  flex-wrap: wrap;
++  gap: 10px;
++}
++
++.contact-form-actions .ui-button {
++  gap: 8px;
++}
++
++.contact-form-actions .ui-button:disabled {
++  cursor: wait;
++  opacity: 0.75;
++}
++
++.contact-form-error {
++  color: #ff9ac5;
++  font-size: 13px;
++  margin: 0;
++}
++
+ .contact-fields {
+   border-bottom: 1px solid var(--line);
+   border-top: 1px solid var(--line);
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   padding: 18px 0;
+ }
+ 
+ .contact-fields p {
+@@ -35,10 +75,16 @@
+ .contact-fields svg {
+   color: var(--pink);
+   flex: none;
+ }
+ 
+ @media (max-width: 980px) {
+   .contacts-split {
+     grid-template-columns: 1fr;
+   }
+ }
++
++@media (max-width: 520px) {
++  .contact-form-row {
++    grid-template-columns: 1fr;
++  }
++}
+diff --git a/client/src/features/contacts/mutations.ts b/client/src/features/contacts/mutations.ts
+new file mode 100644
+index 0000000..c2fe2a2
+--- /dev/null
++++ b/client/src/features/contacts/mutations.ts
+@@ -0,0 +1,19 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { createContact, type CreateContactInput } from '../../api/contacts'
++import { useContactsUiStore } from '../../stores/contactsUiStore'
++import { contactsQueries } from './queries'
++
++export function useCreateContact() {
++  const queryClient = useQueryClient()
++  const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
++  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
++
++  return useMutation({
++    mutationFn: (input: CreateContactInput) => createContact(input),
++    onSuccess: async (contact) => {
++      await queryClient.invalidateQueries({ queryKey: contactsQueries.contacts().queryKey })
++      setSelectedId(contact.id)
++      setCreateOpen(false)
++    },
++  })
++}

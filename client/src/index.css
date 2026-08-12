@@ -1,19 +1,31 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap');
-@import './styles/tokens.css';
-
+@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@400;500&family=Abel:wght@400;500;600;700;800;900&display=swap");
+@import "./styles/tokens.css";
 
 :root {
-  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  color: #f4f4f8;
-  background: #090d14;
+  font-family: "Abel", ui-sans-serif, system-ui, sans-serif;
+  color: #ffffff;
+  background: #000000;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* -moz-osx-font-smoothing: grayscale; */
 }
 
-* { box-sizing: border-box; }
-button, input, textarea { font: inherit; }
-button { cursor: pointer; }
-body { margin: 0; min-width: 320px; }
-#root { min-height: 100svh; }
+* {
+  box-sizing: border-box;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+#root {
+  min-height: 100svh;
+}

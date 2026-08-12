@@ -1,0 +1,379 @@
+Commits:
+5ac1c5a feat: polish Compose and persist sent messages via mock API
+
+Stat:
+ client/src/features/mail/ComposeDialog.tsx | 144 ++++++++++++++++++++++-------
+ client/src/features/mail/MailWorkspace.tsx |  10 +-
+ client/src/features/mail/MessageList.tsx   |  13 ++-
+ client/src/features/mail/mail.css          |  15 ++-
+ client/src/features/mail/mutations.ts      |  21 +++++
+ 5 files changed, 155 insertions(+), 48 deletions(-)
+
+diff --git a/client/src/features/mail/ComposeDialog.tsx b/client/src/features/mail/ComposeDialog.tsx
+index 2995714..347b1c5 100644
+--- a/client/src/features/mail/ComposeDialog.tsx
++++ b/client/src/features/mail/ComposeDialog.tsx
+@@ -1,68 +1,146 @@
+-import { useState } from 'react'
++import { useEffect, useState, type FormEvent } from 'react'
+ import { Send } from 'lucide-react'
++import { Button } from '../../components/ui/button'
++import { ChipInput } from '../../components/ui/chip-input'
+ import { Dialog } from '../../components/ui/dialog'
++import { FormField } from '../../components/ui/form-field'
+ import { Input } from '../../components/ui/input'
+ import { Spinner } from '../../components/ui/spinner'
++import { TextArea } from '../../components/ui/textarea'
++import { useCreateMessage } from './mutations'
+ 
+ type ComposeDialogProps = {
+   open: boolean
+   onClose: () => void
+ }
+ 
++type ValidationErrors = Partial<Record<'to' | 'subject' | 'body', string>>
++
+ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
+   const [to, setTo] = useState('')
++  const [cc, setCc] = useState<string[]>([])
++  const [bcc, setBcc] = useState<string[]>([])
+   const [subject, setSubject] = useState('')
+   const [body, setBody] = useState('')
+-  const [sending, setSending] = useState(false)
+-  const [validation, setValidation] = useState<string | null>(null)
++  const [attachments, setAttachments] = useState<string[]>([])
++  const [validation, setValidation] = useState<ValidationErrors>({})
++  const { mutateAsync, isPending, error, reset } = useCreateMessage()
+ 
+-  async function handleSend() {
+-    if (!to.trim() || !subject.trim() || !body.trim()) {
+-      setValidation('Add a recipient, subject, and message before sending.')
+-      return
+-    }
+-    setValidation(null)
+-    setSending(true)
+-    await new Promise((resolve) => setTimeout(resolve, 400))
+-    setSending(false)
++  useEffect(() => {
++    if (open) return
+     setTo('')
++    setCc([])
++    setBcc([])
+     setSubject('')
+     setBody('')
+-    onClose()
++    setAttachments([])
++    setValidation({})
++    reset()
++  }, [open, reset])
++
++  async function handleSend(event: FormEvent<HTMLFormElement>) {
++    event.preventDefault()
++    const nextValidation: ValidationErrors = {
++      ...(!to.trim() && { to: 'Add at least one recipient.' }),
++      ...(!subject.trim() && { subject: 'Add a subject.' }),
++      ...(!body.trim() && { body: 'Write a message.' }),
++    }
++
++    setValidation(nextValidation)
++    if (Object.keys(nextValidation).length > 0) {
++      return
++    }
++
++    try {
++      await mutateAsync({
++        to: to.trim(),
++        cc: cc.length ? cc : undefined,
++        bcc: bcc.length ? bcc : undefined,
++        subject,
++        body,
++        attachments: attachments.length ? attachments : undefined,
++      })
++    } catch {
++      // The mutation error is rendered inline below the form.
++    }
+   }
+ 
+   return (
+     <Dialog
+       open={open}
+       onClose={onClose}
+       eyebrow="New message"
+       title="Compose"
+       footer={
+-        <div className="compose-footer">
+-          <button className="send-button" type="button" onClick={() => void handleSend()} disabled={sending}>
+-            {sending ? <Spinner size={14} /> : null}
++        <div className="ui-dialog-footer">
++          <Button type="submit" form="compose-form" disabled={isPending}>
++            {isPending ? <Spinner size={14} /> : null}
+             Send <Send size={15} strokeWidth={1.75} />
+-          </button>
+-          <button className="discard-button" type="button" onClick={onClose}>
++          </Button>
++          <Button type="button" variant="ghost" onClick={onClose}>
+             Discard
+-          </button>
++          </Button>
+         </div>
+       }
+     >
+-      <Input placeholder="To" aria-label="Recipient" value={to} onChange={(event) => setTo(event.target.value)} />
+-      <Input
+-        placeholder="Subject"
+-        aria-label="Subject"
+-        value={subject}
+-        onChange={(event) => setSubject(event.target.value)}
+-      />
+-      <textarea
+-        aria-label="Message"
+-        placeholder="Write your message…"
+-        value={body}
+-        onChange={(event) => setBody(event.target.value)}
+-      />
+-      {validation ? <p className="compose-validation">{validation}</p> : null}
++      <form id="compose-form" className="compose-form" onSubmit={(event) => void handleSend(event)}>
++        <FormField label="To" htmlFor="compose-to" error={validation.to}>
++          <Input
++            id="compose-to"
++            placeholder="name@example.com"
++            value={to}
++            onChange={(event) => setTo(event.target.value)}
++          />
++        </FormField>
++        <FormField label="Cc" htmlFor="compose-cc">
++          <ChipInput
++            id="compose-cc"
++            label="Cc recipients"
++            value={cc}
++            onChange={setCc}
++            placeholder="Add recipient and press Enter"
++          />
++        </FormField>
++        <FormField label="Bcc" htmlFor="compose-bcc">
++          <ChipInput
++            id="compose-bcc"
++            label="Bcc recipients"
++            value={bcc}
++            onChange={setBcc}
++            placeholder="Add recipient and press Enter"
++          />
++        </FormField>
++        <FormField label="Subject" htmlFor="compose-subject" error={validation.subject}>
++          <Input
++            id="compose-subject"
++            placeholder="Subject"
++            value={subject}
++            onChange={(event) => setSubject(event.target.value)}
++          />
++        </FormField>
++        <FormField label="Message" htmlFor="compose-body" error={validation.body}>
++          <TextArea
++            id="compose-body"
++            placeholder="Write your message…"
++            value={body}
++            onChange={(event) => setBody(event.target.value)}
++          />
++        </FormField>
++        <FormField label="Attachments" htmlFor="compose-attachments">
++          <ChipInput
++            id="compose-attachments"
++            label="Attachments"
++            value={attachments}
++            onChange={setAttachments}
++            placeholder="Add filename and press Enter"
++          />
++        </FormField>
++        {error ? (
++          <p className="compose-mutation-error" role="alert">
++            {error.message}
++          </p>
++        ) : null}
++      </form>
+     </Dialog>
+   )
+ }
+diff --git a/client/src/features/mail/MailWorkspace.tsx b/client/src/features/mail/MailWorkspace.tsx
+index c07fe05..369f0b9 100644
+--- a/client/src/features/mail/MailWorkspace.tsx
++++ b/client/src/features/mail/MailWorkspace.tsx
+@@ -1,14 +1,13 @@
+-import { PanelLeft, PanelRight, PenLine, SquareArrowOutUpRight } from 'lucide-react'
++import { PanelLeft, PanelRight } from 'lucide-react'
+ import { useQuery } from '@tanstack/react-query'
+ import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
+-import { Button } from '../../components/ui/button'
+ import { StorageMeter } from '../../components/ui/storage-meter'
+ import { useMailUiStore } from '../../stores/mailUiStore'
+ import { useShellStore } from '../../stores/shellStore'
+ import { mailQueries } from './queries'
+ import { MailSidebar } from './MailSidebar'
+ import { MessageList } from './MessageList'
+ import { ReaderPanel } from './ReaderPanel'
+ import { ComposeDialog } from './ComposeDialog'
+ import type { Mail } from '../../data/mockMail'
+ import './mail.css'
+@@ -28,27 +27,20 @@ export function MailWorkspace() {
+   const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
+   const sidebarCollapsed = useShellStore((state) => state.sidebarCollapsed)
+ 
+   const messages = data?.messages ?? emptyMessages
+   const selectedMail = messages.find((message) => message.id === selectedId) ?? messages[0]
+   const showInboxDetail = layoutMode === 'inbox' && inboxDetailOpen
+ 
+   return (
+     <AppShell
+       workspaceClassName={layoutMode === 'inbox' ? 'workspace-inbox' : undefined}
+-      primaryAction={
+-        <Button aria-label="Compose new message" className="compose-button" onClick={() => setComposeOpen(true)}>
+-          <PenLine size={18} strokeWidth={1.75} />
+-          <span className="compose-label">Compose</span>
+-          <SquareArrowOutUpRight className="compose-external" size={16} strokeWidth={1.75} />
+-        </Button>
+-      }
+       sidebar={<MailSidebar />}
+       dock={
+         <>
+           <div className="sidebar-controls">
+             <div className="layout-switcher" aria-label="Inbox layout">
+               <button
+                 className={layoutMode === 'split' ? 'layout-option active' : 'layout-option'}
+                 type="button"
+                 onClick={() => setLayoutMode('split')}
+                 title="Split view"
+diff --git a/client/src/features/mail/MessageList.tsx b/client/src/features/mail/MessageList.tsx
+index bf52a0d..4eb4aa7 100644
+--- a/client/src/features/mail/MessageList.tsx
++++ b/client/src/features/mail/MessageList.tsx
+@@ -1,12 +1,12 @@
+ import { useMemo } from 'react'
+-import { Filter, MoreHorizontal } from 'lucide-react'
++import { Filter, MoreHorizontal, PenLine } from 'lucide-react'
+ import { useQuery } from '@tanstack/react-query'
+ import { mailQueries } from './queries'
+ import { MailCard } from './MailCard'
+ import { useMailUiStore } from '../../stores/mailUiStore'
+ import { Button } from '../../components/ui/button'
+ import { SearchField } from '../../components/ui/search-field'
+ import { QueryState } from '../../components/ui/query-state'
+ import { SkeletonRow } from '../../components/ui/skeleton'
+ import type { Mail } from '../../data/mockMail'
+ 
+@@ -17,34 +17,36 @@ export function MessageList() {
+   const activeFolder = useMailUiStore((state) => state.activeFolder)
+   const search = useMailUiStore((state) => state.search)
+   const setSearch = useMailUiStore((state) => state.setSearch)
+   const filterOpen = useMailUiStore((state) => state.filterOpen)
+   const toggleFilterOpen = useMailUiStore((state) => state.toggleFilterOpen)
+   const setFilterOpen = useMailUiStore((state) => state.setFilterOpen)
+   const layoutMode = useMailUiStore((state) => state.layoutMode)
+   const selectedId = useMailUiStore((state) => state.selectedId)
+   const setSelectedId = useMailUiStore((state) => state.setSelectedId)
+   const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
++  const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
+   const starredIds = useMailUiStore((state) => state.starredIds)
+   const toggleStar = useMailUiStore((state) => state.toggleStar)
+ 
+   const messages = data?.messages ?? emptyMessages
+   const visibleMessages = useMemo(() => {
++    const folderMessages = messages.filter((message) => message.folder === activeFolder)
+     const normalizedSearch = search.trim().toLowerCase()
+-    if (!normalizedSearch) return messages
+-    return messages.filter((message) =>
++    if (!normalizedSearch) return folderMessages
++    return folderMessages.filter((message) =>
+       [message.sender, message.subject, message.preview, ...message.labels]
+         .join(' ')
+         .toLowerCase()
+         .includes(normalizedSearch),
+     )
+-  }, [messages, search])
++  }, [activeFolder, messages, search])
+ 
+   return (
+     <>
+       <div className="search-row">
+         <SearchField
+           value={search}
+           onChange={setSearch}
+           placeholder="Search mail here…"
+           label="Search mail"
+         />
+@@ -52,20 +54,23 @@ export function MessageList() {
+ 
+       <div className="inbox-heading">
+         <div>
+           <div className="eyebrow">{activeFolder === 'Inbox' ? 'Primary' : 'Folder view'}</div>
+           <h1>{activeFolder}</h1>
+           <p>
+             {(data?.messages.length ?? 0).toLocaleString()} Messages <span>•</span> <strong>167 Unread</strong>
+           </p>
+         </div>
+         <div className="heading-actions">
++          <Button size="sm" onClick={() => setComposeOpen(true)}>
++            <PenLine size={16} strokeWidth={1.75} /> Compose
++          </Button>
+           <button
+             className={filterOpen ? 'filter-button active' : 'filter-button'}
+             type="button"
+             onClick={toggleFilterOpen}
+           >
+             <Filter size={16} strokeWidth={1.75} /> Filter
+           </button>
+           <Button aria-label="More inbox actions" className="more-button" size="icon" variant="ghost">
+             <MoreHorizontal size={18} strokeWidth={1.75} />
+           </Button>
+diff --git a/client/src/features/mail/mail.css b/client/src/features/mail/mail.css
+index 932c183..0c67c0f 100644
+--- a/client/src/features/mail/mail.css
++++ b/client/src/features/mail/mail.css
+@@ -1,9 +1,20 @@
+-.compose-validation {
++.compose-form {
++  display: flex;
++  flex-direction: column;
++  gap: 14px;
++}
++
++.compose-mutation-error {
+   color: #ff9ac5;
+   font-size: 13px;
+   margin: 0;
+ }
+ 
+-.send-button:disabled {
++.compose-form + .ui-dialog-footer .ui-button {
++  gap: 8px;
++}
++
++.compose-form + .ui-dialog-footer .ui-button:disabled {
++  cursor: wait;
+   opacity: 0.75;
+ }
+diff --git a/client/src/features/mail/mutations.ts b/client/src/features/mail/mutations.ts
+new file mode 100644
+index 0000000..db60fca
+--- /dev/null
++++ b/client/src/features/mail/mutations.ts
+@@ -0,0 +1,21 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { createMessage, type CreateMessageInput } from '../../api/mail'
++import { useMailUiStore } from '../../stores/mailUiStore'
++import { mailQueries } from './queries'
++
++export function useCreateMessage() {
++  const queryClient = useQueryClient()
++  const setSelectedId = useMailUiStore((state) => state.setSelectedId)
++  const setActiveFolder = useMailUiStore((state) => state.setActiveFolder)
++  const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
++
++  return useMutation({
++    mutationFn: (input: CreateMessageInput) => createMessage(input),
++    onSuccess: async (message) => {
++      await queryClient.invalidateQueries({ queryKey: mailQueries.mailbox().queryKey })
++      setActiveFolder('Sent')
++      setSelectedId(message.id)
++      setComposeOpen(false)
++    },
++  })
++}

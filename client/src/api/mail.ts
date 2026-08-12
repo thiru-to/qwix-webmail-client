@@ -1,52 +1,39 @@
-import { mailbox, type Mail } from '../data/mockMail'
-import { delay, maybeFail } from './client'
+import type {
+  FlagsInput,
+  FolderDelete,
+  FolderInput,
+  FolderRename,
+  MailFolder,
+  Message,
+  MessagePage,
+  MoveInput,
+  OkResult,
+  SendInput,
+  SendResult,
+} from '@api/types'
+import { apiUrl, request } from './client'
 
-export type { Mail, Mailbox } from '../data/mockMail'
+export const fetchFolders = () => request<MailFolder[]>('/mail/folders')
 
-export type CreateMessageInput = {
-  to: string
-  cc?: string[]
-  bcc?: string[]
-  subject: string
-  body: string
-  attachments?: string[]
-}
+export const fetchMessages = (folder: string, limit: number, offset: number) =>
+  request<MessagePage>(`/mail/messages?folder=${encodeURIComponent(folder)}&limit=${limit}&offset=${offset}`)
 
-export async function fetchMailbox() {
-  await delay()
-  await maybeFail('mailbox')
-  return mailbox
-}
+export const fetchMessage = (folder: string, uid: number) =>
+  request<Message>(`/mail/message?folder=${encodeURIComponent(folder)}&uid=${uid}`)
 
-export async function createMessage(input: CreateMessageInput): Promise<Mail> {
-  await delay()
-  await maybeFail('createMessage')
-  const now = new Date()
-  const bodyLines = input.body.split(/\n/).filter((line) => line.length > 0)
-  const message: Mail = {
-    id: `sent-${now.getTime()}`,
-    sender: mailbox.account.name,
-    email: mailbox.account.email,
-    initials: mailbox.account.name
-      .split(/\s+/)
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase(),
-    avatarTone: 'plum',
-    subject: input.subject.trim(),
-    preview: input.body.trim().slice(0, 120),
-    time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    date: 'Today',
-    labels: [],
-    attachments: input.attachments?.length ? input.attachments : undefined,
-    body: bodyLines.length ? bodyLines : [input.body.trim()],
-    folder: 'Sent',
-    cc: input.cc?.length ? input.cc : undefined,
-    bcc: input.bcc?.length ? input.bcc : undefined,
-  }
-  mailbox.messages = [message, ...mailbox.messages]
-  const sent = mailbox.folders.find((f) => f.name === 'Sent')
-  if (sent) sent.count += 1
-  return message
-}
+export const setFlags = (input: FlagsInput) => request<OkResult>('/mail/flags', { method: 'POST', body: input })
+
+export const sendMessage = (input: SendInput) => request<SendResult>('/mail/send', { method: 'POST', body: input })
+
+export const attachmentUrl = (folder: string, uid: number, part: string) =>
+  apiUrl(`/mail/attachment?folder=${encodeURIComponent(folder)}&uid=${uid}&part=${encodeURIComponent(part)}`)
+
+export const moveMessages = (input: MoveInput) => request<OkResult>('/mail/move', { method: 'POST', body: input })
+
+export const createFolder = (input: FolderInput) => request<OkResult>('/mail/folders', { method: 'POST', body: input })
+
+export const renameFolder = (input: FolderRename) =>
+  request<OkResult>('/mail/folders', { method: 'PATCH', body: input })
+
+export const deleteFolder = (input: FolderDelete) =>
+  request<OkResult & { moved: number }>('/mail/folders', { method: 'DELETE', body: input })

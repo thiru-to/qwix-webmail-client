@@ -1,0 +1,614 @@
+Commits:
+daa9b26 fix: resolve add-item review blockers
+
+Stat:
+ client/.superpowers/sdd/final-fix-report.md        | 20 +++++++++++++++++
+ client/src/api/mail.ts                             |  2 +-
+ client/src/components/ui/dialog.tsx                |  8 ++++---
+ client/src/components/ui/side-panel.tsx            |  1 -
+ client/src/components/ui/ui.css                    |  1 +
+ client/src/data/mockCalendar.ts                    |  4 ++--
+ client/src/data/mockContacts.ts                    |  2 +-
+ client/src/data/mockMail.ts                        | 26 ++++++++++++++++++----
+ client/src/features/calendar/EventFormPanel.tsx    |  2 +-
+ client/src/features/calendar/calendar.css          |  6 -----
+ client/src/features/contacts/ContactFormPanel.tsx  |  2 +-
+ client/src/features/contacts/ContactsWorkspace.tsx |  5 +++--
+ client/src/features/contacts/contacts.css          |  6 -----
+ client/src/features/contacts/mutations.ts          |  2 ++
+ client/src/features/mail/ComposeDialog.tsx         |  8 ++++---
+ client/src/features/mail/MessageList.tsx           | 13 +++++++----
+ client/src/features/mail/mail.css                  |  6 -----
+ client/src/stores/contactsUiStore.ts               |  4 ++++
+ 18 files changed, 77 insertions(+), 41 deletions(-)
+
+diff --git a/client/.superpowers/sdd/final-fix-report.md b/client/.superpowers/sdd/final-fix-report.md
+new file mode 100644
+index 0000000..42fcc2b
+--- /dev/null
++++ b/client/.superpowers/sdd/final-fix-report.md
+@@ -0,0 +1,20 @@
++# Add Items Forms — Whole-Branch Review Fixes
++
++## Fixed
++
++- Replaced in-place create mutations for mail, calendar, and contacts with new array assignments so React Query observes changed collection identities.
++- Removed the separate exported calendar-events mutation path; event creation now replaces `calendarData.events` and still marks matching calendar days as having events.
++- Updated the mail folder heading to count only the active folder and split empty copy between an empty folder and a search miss.
++- Consolidated compose, event, and contact mutation errors on the shared `ui-form-error` class, including readable light-theme contrast.
++- Removed `aria-modal` from the non-modal side panel and gave each modal dialog title a unique `useId` identifier.
++- Replaced the `as Mail[]` assertion with an explicit `Mailbox` type whose `messages` property is `Mail[]`.
++- Moved contact search into `contactsUiStore` and clear it after successful contact creation so the new selection is visible.
++- Prevented the compose dialog from closing or discarding while its send mutation is pending.
++
++## Verification
++
++- `pnpm lint` — passed with exit code 0.
++- `pnpm build` — passed with exit code 0 (`tsc -b && vite build`; 1,729 modules transformed).
++- Browser smoke — created `Staleness smoke one` and `Staleness smoke two` consecutively in Sent; both remained visible and the folder heading showed 2 messages.
++- Browser smoke — created `Agenda staleness smoke` on August 14; it appeared immediately in both the month cell and agenda/detail view.
++- Automated tests were not run because this project has no test script or test files configured.
+diff --git a/client/src/api/mail.ts b/client/src/api/mail.ts
+index 29aad34..a6a4531 100644
+--- a/client/src/api/mail.ts
++++ b/client/src/api/mail.ts
+@@ -40,13 +40,13 @@ export async function createMessage(input: CreateMessageInput): Promise<Mail> {
+     date: 'Today',
+     labels: [],
+     attachments: input.attachments?.length ? input.attachments : undefined,
+     body: bodyLines.length ? bodyLines : [input.body.trim()],
+     folder: 'Sent',
+     cc: input.cc?.length ? input.cc : undefined,
+     bcc: input.bcc?.length ? input.bcc : undefined,
+   }
+-  mailbox.messages.unshift(message)
++  mailbox.messages = [message, ...mailbox.messages]
+   const sent = mailbox.folders.find((f) => f.name === 'Sent')
+   if (sent) sent.count += 1
+   return message
+ }
+diff --git a/client/src/components/ui/dialog.tsx b/client/src/components/ui/dialog.tsx
+index fe1f188..5af4181 100644
+--- a/client/src/components/ui/dialog.tsx
++++ b/client/src/components/ui/dialog.tsx
+@@ -1,38 +1,40 @@
+-import type { ReactNode } from 'react'
++import { useId, type ReactNode } from 'react'
+ import { X } from 'lucide-react'
+ import { cn } from '../../lib/utils'
+ 
+ type DialogProps = {
+   open: boolean
+   onClose: () => void
+   title: string
+   eyebrow?: string
+   children: ReactNode
+   className?: string
+   footer?: ReactNode
+ }
+ 
+ export function Dialog({ open, onClose, title, eyebrow, children, className, footer }: DialogProps) {
++  const titleId = useId()
++
+   if (!open) return null
+ 
+   return (
+     <div className="ui-dialog-backdrop" role="presentation" onMouseDown={onClose}>
+       <section
+         className={cn('ui-dialog', className)}
+         role="dialog"
+         aria-modal="true"
+-        aria-labelledby="dialog-title"
++        aria-labelledby={titleId}
+         onMouseDown={(event) => event.stopPropagation()}
+       >
+         <div className="ui-dialog-header">
+           <div>
+             {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
+-            <h2 id="dialog-title">{title}</h2>
++            <h2 id={titleId}>{title}</h2>
+           </div>
+           <button aria-label="Close dialog" className="close-dialog" type="button" onClick={onClose}>
+             <X size={18} strokeWidth={1.75} />
+           </button>
+         </div>
+         {children}
+         {footer}
+       </section>
+diff --git a/client/src/components/ui/side-panel.tsx b/client/src/components/ui/side-panel.tsx
+index 54b3cf8..5a5e75e 100644
+--- a/client/src/components/ui/side-panel.tsx
++++ b/client/src/components/ui/side-panel.tsx
+@@ -15,17 +15,16 @@ type SidePanelProps = {
+ export function SidePanel({ open, onClose, title, eyebrow, children, footer, className }: SidePanelProps) {
+   const titleId = useId()
+ 
+   if (!open) return null
+   return (
+     <section
+       className={cn('ui-side-panel reader-panel', className)}
+       role="dialog"
+-      aria-modal="true"
+       aria-labelledby={titleId}
+     >
+       <div className="ui-side-panel-header">
+         <div>
+           {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
+           <h2 id={titleId}>{title}</h2>
+         </div>
+         <button type="button" className="close-dialog" aria-label="Close panel" onClick={onClose}>
+diff --git a/client/src/components/ui/ui.css b/client/src/components/ui/ui.css
+index 548f5fb..a879929 100644
+--- a/client/src/components/ui/ui.css
++++ b/client/src/components/ui/ui.css
+@@ -164,16 +164,17 @@
+   font-size: 12px;
+   font-weight: 700;
+   letter-spacing: .04em;
+ }
+ .ui-form-error {
+   color: #ff9ac5;
+   font-size: 12px;
+   line-height: 1.4;
++  margin: 0;
+ }
+ .ui-textarea,
+ .ui-form-field .ui-input,
+ .ui-dialog .ui-input,
+ .ui-dialog textarea {
+   background: var(--surface-control);
+   border: 1px solid var(--line);
+   border-radius: 11px;
+diff --git a/client/src/data/mockCalendar.ts b/client/src/data/mockCalendar.ts
+index 49d01f2..816b087 100644
+--- a/client/src/data/mockCalendar.ts
++++ b/client/src/data/mockCalendar.ts
+@@ -100,17 +100,17 @@ function buildMonthDays(year: number, monthIndex: number, todayIso: string, even
+       isToday: date === todayIso,
+       hasEvents: eventDates.has(date),
+     })
+   }
+ 
+   return cells
+ }
+ 
+-export const calendarEvents: CalendarEvent[] = [
++const calendarEvents: CalendarEvent[] = [
+   {
+     id: 'steering',
+     title: 'Q3 Migration Steering',
+     date: '2026-08-12',
+     time: '10:00 AM – 11:00 AM',
+     day: 'Wed · Aug 12',
+     location: 'Zoom · Northline',
+     tone: 'purple',
+@@ -233,17 +233,17 @@ export function eventsForDate(events: CalendarEvent[], date: string) {
+ }
+ 
+ export function eventsForDates(events: CalendarEvent[], dates: string[]) {
+   const set = new Set(dates)
+   return events.filter((event) => set.has(event.date))
+ }
+ 
+ export function appendCalendarEvent(event: CalendarEvent): CalendarEvent {
+-  calendarEvents.push(event)
++  calendarData.events = [...calendarData.events, event]
+   for (const day of [
+     ...calendarData.monthDays,
+     ...calendarData.fourWeekDays,
+     ...calendarData.weekDays,
+     ...calendarData.yearMonths.flatMap((m) => m.days),
+   ]) {
+     if (day.date === event.date) day.hasEvents = true
+   }
+diff --git a/client/src/data/mockContacts.ts b/client/src/data/mockContacts.ts
+index bab23d0..66f63cc 100644
+--- a/client/src/data/mockContacts.ts
++++ b/client/src/data/mockContacts.ts
+@@ -77,11 +77,11 @@ export const contactsData: ContactsData = {
+ export function initialsFromName(name: string): string {
+   const parts = name.trim().split(/\s+/).filter(Boolean)
+   if (parts.length === 0) return '?'
+   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
+   return `${parts[0]![0] ?? ''}${parts[parts.length - 1]![0] ?? ''}`.toUpperCase()
+ }
+ 
+ export function appendContact(contact: Contact): Contact {
+-  contactsData.contacts.push(contact)
++  contactsData.contacts = [...contactsData.contacts, contact]
+   return contact
+ }
+diff --git a/client/src/data/mockMail.ts b/client/src/data/mockMail.ts
+index 65112b1..1885066 100644
+--- a/client/src/data/mockMail.ts
++++ b/client/src/data/mockMail.ts
+@@ -15,17 +15,37 @@ export type Mail = {
+   labels: MailLabel[]
+   attachments?: string[]
+   body: string[]
+   folder: string
+   cc?: string[]
+   bcc?: string[]
+ }
+ 
+-export const mailbox = {
++type MailboxFolder = {
++  name: string
++  icon: string
++  count: number
++}
++
++export type Mailbox = {
++  account: {
++    name: string
++    email: string
++    storageUsed: string
++    storageLimit: string
++    storagePercent: number
++  }
++  folders: MailboxFolder[]
++  secondaryFolders: MailboxFolder[]
++  labels: { name: string; color: string; count: number }[]
++  messages: Mail[]
++}
++
++export const mailbox: Mailbox = {
+   account: {
+     name: 'Courtney Henry',
+     email: 'courtney@qwixmail.com',
+     storageUsed: '10.06 MB',
+     storageLimit: '200 MB',
+     storagePercent: 5,
+   },
+   folders: [
+@@ -198,12 +218,10 @@ export const mailbox = {
+       subject: 'The products everyone is talking about this week',
+       preview: 'Catch up on the most interesting launches, tools, and ideas from makers around the world…',
+       time: 'Jul 31',
+       date: 'Jul 31, 2026',
+       folder: 'Inbox',
+       labels: ['Socials'],
+       body: ['Here are this week’s top launches from the Product Hunt community.'],
+     },
+-  ] as Mail[],
++  ],
+ }
+-
+-export type Mailbox = typeof mailbox
+diff --git a/client/src/features/calendar/EventFormPanel.tsx b/client/src/features/calendar/EventFormPanel.tsx
+index 8f891b2..80f7165 100644
+--- a/client/src/features/calendar/EventFormPanel.tsx
++++ b/client/src/features/calendar/EventFormPanel.tsx
+@@ -176,16 +176,16 @@ export function EventFormPanel() {
+           <TonePicker
+             value={tone}
+             onChange={(value) => setTone(value as CreateEventInput['tone'])}
+             options={toneOptions}
+             label="Event color"
+           />
+         </FormField>
+         {error ? (
+-          <p className="calendar-event-form-error" role="alert">
++          <p className="ui-form-error" role="alert">
+             {error.message}
+           </p>
+         ) : null}
+       </form>
+     </SidePanel>
+   )
+ }
+diff --git a/client/src/features/calendar/calendar.css b/client/src/features/calendar/calendar.css
+index ba7bfee..3f0bf87 100644
+--- a/client/src/features/calendar/calendar.css
++++ b/client/src/features/calendar/calendar.css
+@@ -177,22 +177,16 @@
+   gap: 8px;
+ }
+ 
+ .calendar-event-form-actions .ui-button:disabled {
+   cursor: wait;
+   opacity: 0.75;
+ }
+ 
+-.calendar-event-form-error {
+-  color: #ff9ac5;
+-  font-size: 13px;
+-  margin: 0;
+-}
+-
+ .calendar-event-row {
+   grid-template-columns: 18px minmax(0, 1fr);
+ }
+ 
+ .calendar-detail {
+   border: 1px solid var(--card-border);
+   border-radius: 28px;
+   min-height: 280px;
+diff --git a/client/src/features/contacts/ContactFormPanel.tsx b/client/src/features/contacts/ContactFormPanel.tsx
+index cf1a4f9..bfccc8f 100644
+--- a/client/src/features/contacts/ContactFormPanel.tsx
++++ b/client/src/features/contacts/ContactFormPanel.tsx
+@@ -140,16 +140,16 @@ export function ContactFormPanel() {
+           <TonePicker
+             value={avatarTone}
+             onChange={(value) => setAvatarTone(value as CreateContactInput['avatarTone'])}
+             options={toneOptions}
+             label="Avatar color"
+           />
+         </FormField>
+         {error ? (
+-          <p className="contact-form-error" role="alert">
++          <p className="ui-form-error" role="alert">
+             {error.message}
+           </p>
+         ) : null}
+       </form>
+     </SidePanel>
+   )
+ }
+diff --git a/client/src/features/contacts/ContactsWorkspace.tsx b/client/src/features/contacts/ContactsWorkspace.tsx
+index cc9b14c..cdf1be3 100644
+--- a/client/src/features/contacts/ContactsWorkspace.tsx
++++ b/client/src/features/contacts/ContactsWorkspace.tsx
+@@ -1,9 +1,9 @@
+-import { useMemo, useState } from 'react'
++import { useMemo } from 'react'
+ import { useQuery } from '@tanstack/react-query'
+ import { Building2, Mail, Phone, UsersRound } from 'lucide-react'
+ import type { Contact } from '../../api/contacts'
+ import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
+ import { Avatar } from '../../components/ui/avatar'
+ import { Button } from '../../components/ui/button'
+ import { SearchField } from '../../components/ui/search-field'
+ import { List, ListRow } from '../../components/ui/list'
+@@ -13,17 +13,18 @@ import { SkeletonRow } from '../../components/ui/skeleton'
+ import { useContactsUiStore } from '../../stores/contactsUiStore'
+ import { ContactFormPanel } from './ContactFormPanel'
+ import { contactsQueries } from './queries'
+ import './contacts.css'
+ 
+ export function ContactsWorkspace() {
+   const { data, isPending, isError, error, refetch, isFetching } = useQuery(contactsQueries.contacts())
+   const contacts = useMemo(() => data?.contacts ?? [], [data?.contacts])
+-  const [search, setSearch] = useState('')
++  const search = useContactsUiStore((state) => state.search)
++  const setSearch = useContactsUiStore((state) => state.setSearch)
+   const selectedId = useContactsUiStore((state) => state.selectedId)
+   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
+   const createOpen = useContactsUiStore((state) => state.createOpen)
+   const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
+ 
+   const visible = useMemo(() => {
+     const normalized = search.trim().toLowerCase()
+     if (!normalized) return contacts
+diff --git a/client/src/features/contacts/contacts.css b/client/src/features/contacts/contacts.css
+index cd4b9f8..99b868e 100644
+--- a/client/src/features/contacts/contacts.css
++++ b/client/src/features/contacts/contacts.css
+@@ -44,22 +44,16 @@
+   gap: 8px;
+ }
+ 
+ .contact-form-actions .ui-button:disabled {
+   cursor: wait;
+   opacity: 0.75;
+ }
+ 
+-.contact-form-error {
+-  color: #ff9ac5;
+-  font-size: 13px;
+-  margin: 0;
+-}
+-
+ .contact-fields {
+   border-bottom: 1px solid var(--line);
+   border-top: 1px solid var(--line);
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   padding: 18px 0;
+ }
+diff --git a/client/src/features/contacts/mutations.ts b/client/src/features/contacts/mutations.ts
+index c2fe2a2..90293b4 100644
+--- a/client/src/features/contacts/mutations.ts
++++ b/client/src/features/contacts/mutations.ts
+@@ -2,18 +2,20 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
+ import { createContact, type CreateContactInput } from '../../api/contacts'
+ import { useContactsUiStore } from '../../stores/contactsUiStore'
+ import { contactsQueries } from './queries'
+ 
+ export function useCreateContact() {
+   const queryClient = useQueryClient()
+   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
+   const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
++  const setSearch = useContactsUiStore((state) => state.setSearch)
+ 
+   return useMutation({
+     mutationFn: (input: CreateContactInput) => createContact(input),
+     onSuccess: async (contact) => {
+       await queryClient.invalidateQueries({ queryKey: contactsQueries.contacts().queryKey })
++      setSearch('')
+       setSelectedId(contact.id)
+       setCreateOpen(false)
+     },
+   })
+ }
+diff --git a/client/src/features/mail/ComposeDialog.tsx b/client/src/features/mail/ComposeDialog.tsx
+index 1359d59..bc50149 100644
+--- a/client/src/features/mail/ComposeDialog.tsx
++++ b/client/src/features/mail/ComposeDialog.tsx
+@@ -68,26 +68,28 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
+     } catch {
+       // The mutation error is rendered inline below the form.
+     }
+   }
+ 
+   return (
+     <Dialog
+       open={open}
+-      onClose={closeDialog}
++      onClose={() => {
++        if (!isPending) closeDialog()
++      }}
+       eyebrow="New message"
+       title="Compose"
+       footer={
+         <div className="ui-dialog-footer">
+           <Button type="submit" form="compose-form" disabled={isPending}>
+             {isPending ? <Spinner size={14} /> : null}
+             Send <Send size={15} strokeWidth={1.75} />
+           </Button>
+-          <Button type="button" variant="ghost" onClick={closeDialog}>
++          <Button type="button" variant="ghost" onClick={closeDialog} disabled={isPending}>
+             Discard
+           </Button>
+         </div>
+       }
+     >
+       <form id="compose-form" className="compose-form" onSubmit={(event) => void handleSend(event)}>
+         <FormField label="To" htmlFor="compose-to" error={validation.to}>
+           <Input
+@@ -145,16 +147,16 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
+             id="compose-attachments"
+             label="Attachments"
+             value={attachments}
+             onChange={setAttachments}
+             placeholder="Add filename and press Enter"
+           />
+         </FormField>
+         {error ? (
+-          <p className="compose-mutation-error" role="alert">
++          <p className="ui-form-error" role="alert">
+             {error.message}
+           </p>
+         ) : null}
+       </form>
+     </Dialog>
+   )
+ }
+diff --git a/client/src/features/mail/MessageList.tsx b/client/src/features/mail/MessageList.tsx
+index a85662d..58fa8ba 100644
+--- a/client/src/features/mail/MessageList.tsx
++++ b/client/src/features/mail/MessageList.tsx
+@@ -24,27 +24,30 @@ export function MessageList() {
+   const selectedId = useMailUiStore((state) => state.selectedId)
+   const setSelectedId = useMailUiStore((state) => state.setSelectedId)
+   const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
+   const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
+   const starredIds = useMailUiStore((state) => state.starredIds)
+   const toggleStar = useMailUiStore((state) => state.toggleStar)
+ 
+   const messages = data?.messages ?? emptyMessages
++  const folderMessages = useMemo(
++    () => messages.filter((message) => message.folder === activeFolder),
++    [activeFolder, messages],
++  )
+   const visibleMessages = useMemo(() => {
+-    const folderMessages = messages.filter((message) => message.folder === activeFolder)
+     const normalizedSearch = search.trim().toLowerCase()
+     if (!normalizedSearch) return folderMessages
+     return folderMessages.filter((message) =>
+       [message.sender, message.subject, message.preview, ...message.labels]
+         .join(' ')
+         .toLowerCase()
+         .includes(normalizedSearch),
+     )
+-  }, [activeFolder, messages, search])
++  }, [folderMessages, search])
+ 
+   return (
+     <>
+       <div className="search-row">
+         <SearchField
+           value={search}
+           onChange={setSearch}
+           placeholder="Search mail here…"
+@@ -52,17 +55,17 @@ export function MessageList() {
+         />
+       </div>
+ 
+       <div className="inbox-heading">
+         <div>
+           <div className="eyebrow">{activeFolder === 'Inbox' ? 'Primary' : 'Folder view'}</div>
+           <h1>{activeFolder}</h1>
+           <p>
+-            {(data?.messages.length ?? 0).toLocaleString()} Messages <span>•</span> <strong>167 Unread</strong>
++            {folderMessages.length.toLocaleString()} Messages <span>•</span> <strong>167 Unread</strong>
+           </p>
+         </div>
+         <div className="heading-actions">
+           <Button size="sm" onClick={() => setComposeOpen(true)}>
+             <PenLine size={16} strokeWidth={1.75} /> Compose
+           </Button>
+           <button
+             className={filterOpen ? 'filter-button active' : 'filter-button'}
+@@ -96,17 +99,19 @@ export function MessageList() {
+             <div className="query-pending">
+               <SkeletonRow />
+               <SkeletonRow />
+               <SkeletonRow />
+             </div>
+           }
+         >
+           {visibleMessages.length === 0 ? (
+-            <div className="loading-state">No messages match “{search}”.</div>
++            <div className="loading-state">
++              {search.trim() ? `No messages match “${search}”.` : `No messages in ${activeFolder}.`}
++            </div>
+           ) : (
+             visibleMessages.map((message) => (
+               <MailCard
+                 key={message.id}
+                 message={message}
+                 selected={layoutMode === 'split' && message.id === selectedId}
+                 starred={starredIds.includes(message.id)}
+                 onSelect={() => {
+diff --git a/client/src/features/mail/mail.css b/client/src/features/mail/mail.css
+index 0c67c0f..915daac 100644
+--- a/client/src/features/mail/mail.css
++++ b/client/src/features/mail/mail.css
+@@ -1,20 +1,14 @@
+ .compose-form {
+   display: flex;
+   flex-direction: column;
+   gap: 14px;
+ }
+ 
+-.compose-mutation-error {
+-  color: #ff9ac5;
+-  font-size: 13px;
+-  margin: 0;
+-}
+-
+ .compose-form + .ui-dialog-footer .ui-button {
+   gap: 8px;
+ }
+ 
+ .compose-form + .ui-dialog-footer .ui-button:disabled {
+   cursor: wait;
+   opacity: 0.75;
+ }
+diff --git a/client/src/stores/contactsUiStore.ts b/client/src/stores/contactsUiStore.ts
+index a5f7227..dc723a2 100644
+--- a/client/src/stores/contactsUiStore.ts
++++ b/client/src/stores/contactsUiStore.ts
+@@ -1,15 +1,19 @@
+ import { create } from 'zustand'
+ 
+ type ContactsUiState = {
+   selectedId: string
+   createOpen: boolean
++  search: string
+   setSelectedId: (id: string) => void
+   setCreateOpen: (open: boolean) => void
++  setSearch: (search: string) => void
+ }
+ 
+ export const useContactsUiStore = create<ContactsUiState>()((set) => ({
+   selectedId: 'avery',
+   createOpen: false,
++  search: '',
+   setSelectedId: (selectedId) => set({ selectedId }),
+   setCreateOpen: (createOpen) => set({ createOpen }),
++  setSearch: (search) => set({ search }),
+ }))

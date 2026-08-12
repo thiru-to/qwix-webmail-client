@@ -1,48 +1,79 @@
+import type { MessageSummary } from '@api/types'
 import { useMemo } from 'react'
-import { Filter, MoreHorizontal, PenLine } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { Filter, PenLine } from 'lucide-react'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { mailQueries } from './queries'
+import { useToggleFlagged } from './mutations'
 import { MailCard } from './MailCard'
-import { useMailUiStore } from '../../stores/mailUiStore'
+import { useMailUiStore, type MailFilter } from '../../stores/mailUiStore'
 import { Button } from '../../components/ui/button'
 import { SearchField } from '../../components/ui/search-field'
 import { QueryState } from '../../components/ui/query-state'
 import { SkeletonRow } from '../../components/ui/skeleton'
-import type { Mail } from '../../api/mail'
+import { Spinner } from '../../components/ui/spinner'
+import { addressLabel } from '../../lib/format'
+import { buildThreads } from '../../lib/threading'
+import { useSettings } from '../settings/queries'
 
-const emptyMessages: Mail[] = []
+const FILTERS: { id: MailFilter; label: string; matches: (message: MessageSummary) => boolean }[] = [
+  { id: 'unread', label: 'Unread only', matches: (message) => !message.seen },
+  { id: 'attachments', label: 'Has attachments', matches: (message) => message.hasAttachments },
+  { id: 'flagged', label: 'Flagged', matches: (message) => message.flagged },
+]
 
 export function MessageList() {
-  const { data, isPending, isError, error, refetch, isFetching } = useQuery(mailQueries.mailbox())
-  const activeFolder = useMailUiStore((state) => state.activeFolder)
+  const folder = useMailUiStore((state) => state.folder)
   const search = useMailUiStore((state) => state.search)
   const setSearch = useMailUiStore((state) => state.setSearch)
   const filterOpen = useMailUiStore((state) => state.filterOpen)
   const toggleFilterOpen = useMailUiStore((state) => state.toggleFilterOpen)
   const setFilterOpen = useMailUiStore((state) => state.setFilterOpen)
+  const filters = useMailUiStore((state) => state.filters)
+  const toggleFilter = useMailUiStore((state) => state.toggleFilter)
+  const labelFilter = useMailUiStore((state) => state.labelFilter)
+  const settings = useSettings()
   const layoutMode = useMailUiStore((state) => state.layoutMode)
-  const selectedId = useMailUiStore((state) => state.selectedId)
-  const setSelectedId = useMailUiStore((state) => state.setSelectedId)
+  const selectedUid = useMailUiStore((state) => state.selectedUid)
+  const setSelectedUid = useMailUiStore((state) => state.setSelectedUid)
   const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
-  const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
-  const starredIds = useMailUiStore((state) => state.starredIds)
-  const toggleStar = useMailUiStore((state) => state.toggleStar)
+  const openCompose = useMailUiStore((state) => state.openCompose)
 
-  const messages = data?.messages ?? emptyMessages
-  const folderMessages = useMemo(
-    () => messages.filter((message) => message.folder === activeFolder),
-    [activeFolder, messages],
-  )
+  const { data, isPending, isError, error, refetch, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery(mailQueries.messages(folder))
+  const { data: folders } = useQuery(mailQueries.folders())
+  const toggleFlagged = useToggleFlagged()
+
+  // The path separator is server-specific, so take the leaf name the server already gave us.
+  const folderName = folders?.find((entry) => entry.path === folder)?.name ?? folder
+
+  const pages = data?.pages
+  const summary = pages?.[0]
+  const messages = useMemo(() => pages?.flatMap((page) => page.messages) ?? [], [pages])
+
+  // Both search and filters run over what has been paged in — the API has no query surface for either.
   const visibleMessages = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase()
-    if (!normalizedSearch) return folderMessages
-    return folderMessages.filter((message) =>
-      [message.sender, message.subject, message.preview, ...message.labels]
+    const normalized = search.trim().toLowerCase()
+    const active = FILTERS.filter((filter) => filters.includes(filter.id))
+
+    return messages.filter((message) => {
+      if (labelFilter !== null && !message.labelIds.includes(labelFilter)) return false
+      if (!active.every((filter) => filter.matches(message))) return false
+      if (!normalized) return true
+      return [message.subject, addressLabel(message.from), message.from?.address ?? '']
         .join(' ')
         .toLowerCase()
-        .includes(normalizedSearch),
-    )
-  }, [folderMessages, search])
+        .includes(normalized)
+    })
+  }, [filters, labelFilter, messages, search])
+
+  // Threading collapses the filtered list; each row then stands for its newest message.
+  const rows = useMemo(
+    () =>
+      settings.threading
+        ? buildThreads(visibleMessages).map((thread) => ({ message: thread.latest, count: thread.messages.length }))
+        : visibleMessages.map((message) => ({ message, count: 1 })),
+    [settings.threading, visibleMessages],
+  )
 
   return (
     <>
@@ -50,41 +81,47 @@ export function MessageList() {
         <SearchField
           value={search}
           onChange={setSearch}
-          placeholder="Search mail here…"
+          placeholder="Search loaded mail…"
           label="Search mail"
         />
       </div>
 
       <div className="inbox-heading">
         <div>
-          <div className="eyebrow">{activeFolder === 'Inbox' ? 'Primary' : 'Folder view'}</div>
-          <h1>{activeFolder}</h1>
+          <div className="eyebrow">{folder.toUpperCase() === 'INBOX' ? 'Primary' : 'Folder view'}</div>
+          <h1>{folderName}</h1>
           <p>
-            {folderMessages.length.toLocaleString()} Messages <span>•</span> <strong>167 Unread</strong>
+            {(summary?.total ?? 0).toLocaleString()} Messages <span>•</span>{' '}
+            <strong>{(summary?.unseen ?? 0).toLocaleString()} Unread</strong>
           </p>
         </div>
         <div className="heading-actions">
-          <Button size="sm" onClick={() => setComposeOpen(true)}>
+          <Button size="sm" onClick={() => openCompose()}>
             <PenLine size={16} strokeWidth={1.75} /> Compose
           </Button>
           <button
-            className={filterOpen ? 'filter-button active' : 'filter-button'}
+            className={filterOpen || filters.length ? 'filter-button active' : 'filter-button'}
             type="button"
             onClick={toggleFilterOpen}
           >
             <Filter size={16} strokeWidth={1.75} /> Filter
           </button>
-          <Button aria-label="More inbox actions" className="more-button" size="icon" variant="ghost">
-            <MoreHorizontal size={18} strokeWidth={1.75} />
-          </Button>
         </div>
       </div>
       {filterOpen ? (
         <div className="filter-popover">
           <span>Show</span>
-          <button type="button">Unread only</button>
-          <button type="button">Has attachments</button>
-          <button type="button">Starred</button>
+          {FILTERS.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className={filters.includes(filter.id) ? 'active' : undefined}
+              aria-pressed={filters.includes(filter.id)}
+              onClick={() => toggleFilter(filter.id)}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       ) : null}
 
@@ -103,26 +140,38 @@ export function MessageList() {
             </div>
           }
         >
-          {visibleMessages.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="loading-state">
-              {search.trim() ? `No messages match “${search}”.` : `No messages in ${activeFolder}.`}
+              {search.trim() || filters.length || labelFilter !== null ? 'No loaded messages match those filters.' : `No messages in ${folderName}.`}
             </div>
           ) : (
-            visibleMessages.map((message) => (
+            rows.map(({ message, count }) => (
               <MailCard
-                key={message.id}
+                key={message.uid}
                 message={message}
-                selected={layoutMode === 'split' && message.id === selectedId}
-                starred={starredIds.includes(message.id)}
+                threadCount={count}
+                selected={layoutMode === 'split' && message.uid === selectedUid}
                 onSelect={() => {
-                  setSelectedId(message.id)
+                  setSelectedUid(message.uid)
                   setFilterOpen(false)
                   if (layoutMode === 'inbox') setInboxDetailOpen(true)
                 }}
-                onToggleStar={() => toggleStar(message.id)}
+                onToggleFlag={() => toggleFlagged.mutate({ uid: message.uid, set: !message.flagged })}
               />
             ))
           )}
+
+          {hasNextPage ? (
+            <Button
+              className="load-more"
+              variant="outline"
+              onClick={() => void fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? <Spinner size={14} /> : null}
+              Load more
+            </Button>
+          ) : null}
         </QueryState>
       </div>
     </>

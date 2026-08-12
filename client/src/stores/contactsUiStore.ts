@@ -1,19 +1,21 @@
 import { create } from 'zustand'
 
+export type FormPanel = 'none' | 'create' | 'edit'
+
 type ContactsUiState = {
   selectedId: string
-  createOpen: boolean
+  panel: FormPanel
   search: string
   setSelectedId: (id: string) => void
-  setCreateOpen: (open: boolean) => void
+  setPanel: (panel: FormPanel) => void
   setSearch: (search: string) => void
 }
 
 export const useContactsUiStore = create<ContactsUiState>()((set) => ({
-  selectedId: 'avery',
-  createOpen: false,
+  selectedId: '',
+  panel: 'none',
   search: '',
   setSelectedId: (selectedId) => set({ selectedId }),
-  setCreateOpen: (createOpen) => set({ createOpen }),
+  setPanel: (panel) => set({ panel }),
   setSearch: (search) => set({ search }),
 }))

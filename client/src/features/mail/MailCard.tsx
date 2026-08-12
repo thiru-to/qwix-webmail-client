@@ -1,60 +1,69 @@
-import { Paperclip, Star } from 'lucide-react'
-import type { Mail } from '../../api/mail'
+import type { MessageSummary } from '@api/types'
+import { CornerUpLeft, Paperclip, Star } from 'lucide-react'
 import { Avatar } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
 import { IconButton } from '../../components/ui/icon-button'
+import { LabelChips } from '../labels/LabelChips'
+import { addressLabel, avatarTone, formatListDate, initialsOf } from '../../lib/format'
 
 const stroke = 1.75
 
 type MailCardProps = {
-  message: Mail
+  message: MessageSummary
   selected: boolean
-  starred: boolean
+  threadCount?: number
   onSelect: () => void
-  onToggleStar: () => void
+  onToggleFlag: () => void
 }
 
-export function MailCard({ message, selected, starred, onSelect, onToggleStar }: MailCardProps) {
+export function MailCard({ message, selected, threadCount = 1, onSelect, onToggleFlag }: MailCardProps) {
+  const sender = addressLabel(message.from)
+  const seed = message.from?.address ?? sender
+
   return (
     <article
-      className={selected ? 'mail-card selected' : message.unread ? 'mail-card unread' : 'mail-card'}
+      className={selected ? 'mail-card selected' : message.seen ? 'mail-card' : 'mail-card unread'}
       onClick={onSelect}
       onKeyDown={(event) => event.key === 'Enter' && onSelect()}
       role="button"
       tabIndex={0}
     >
-      <Avatar initials={message.initials} tone={message.avatarTone} />
+      <Avatar initials={initialsOf(sender)} tone={avatarTone(seed)} />
       <div className="mail-card-content">
         <div className="mail-card-topline">
-          <h2>{message.subject}</h2>
-          <time>{message.time}</time>
+          <h2>
+            {message.subject || '(no subject)'}
+            {threadCount > 1 ? <span className="thread-count">{threadCount}</span> : null}
+          </h2>
+          <time>{formatListDate(message.date)}</time>
         </div>
-        <div className="sender-name">{message.sender}</div>
-        <p>{message.preview}</p>
+        <div className="sender-name">{sender}</div>
+        <p>{message.from?.address ?? ''}</p>
         <div className="card-meta">
-          {message.attachments ? (
+          {message.hasAttachments ? (
             <span className="meta-pill">
-              <Paperclip size={13} strokeWidth={stroke} /> {message.attachments.length}
+              <Paperclip size={13} strokeWidth={stroke} />
             </span>
           ) : null}
-          {message.labels.map((label) => (
-            <Badge className={`label-badge ${label.toLowerCase()}`} key={label}>
-              <span />
-              {label}
-            </Badge>
-          ))}
+          {message.answered ? (
+            <span className="meta-pill">
+              <CornerUpLeft size={13} strokeWidth={stroke} />
+            </span>
+          ) : null}
+          {message.draft ? <Badge>Draft</Badge> : null}
+          <LabelChips ids={message.labelIds} />
         </div>
       </div>
       <IconButton
-        label={starred ? `Unstar ${message.subject}` : `Star ${message.subject}`}
-        className={starred ? 'star-button starred' : 'star-button'}
-        pressed={starred}
+        label={message.flagged ? `Unflag ${message.subject}` : `Flag ${message.subject}`}
+        className={message.flagged ? 'star-button starred' : 'star-button'}
+        pressed={message.flagged}
         onClick={(event) => {
           event.stopPropagation()
-          onToggleStar()
+          onToggleFlag()
         }}
       >
-        <Star size={17} strokeWidth={stroke} fill={starred ? 'currentColor' : 'none'} />
+        <Star size={17} strokeWidth={stroke} fill={message.flagged ? 'currentColor' : 'none'} />
       </IconButton>
     </article>
   )

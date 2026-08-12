@@ -1,48 +1,61 @@
+import type { SendInput } from '@api/types'
 import { create } from 'zustand'
 
 export type LayoutMode = 'split' | 'inbox'
 
+export type MailFilter = 'unread' | 'attachments' | 'flagged'
+
 type MailUiState = {
-  selectedId: string
-  activeFolder: string
+  folder: string
+  selectedUid: number | null
   layoutMode: LayoutMode
   inboxDetailOpen: boolean
   search: string
   filterOpen: boolean
+  filters: MailFilter[]
+  labelFilter: number | null
   composeOpen: boolean
-  starredIds: string[]
-  setSelectedId: (id: string) => void
-  setActiveFolder: (folder: string) => void
+  /** Seeds the compose form; set when replying, empty for a blank message. */
+  composeDraft: Partial<SendInput>
+  setFolder: (folder: string) => void
+  setSelectedUid: (uid: number | null) => void
   setLayoutMode: (mode: LayoutMode) => void
   setInboxDetailOpen: (open: boolean) => void
   setSearch: (search: string) => void
   toggleFilterOpen: () => void
   setFilterOpen: (open: boolean) => void
-  setComposeOpen: (open: boolean) => void
-  toggleStar: (id: string) => void
+  toggleFilter: (filter: MailFilter) => void
+  setLabelFilter: (id: number | null) => void
+  openCompose: (draft?: Partial<SendInput>) => void
+  closeCompose: () => void
 }
 
 export const useMailUiStore = create<MailUiState>()((set) => ({
-  selectedId: 'stripe-payout',
-  activeFolder: 'Inbox',
+  folder: 'INBOX',
+  selectedUid: null,
   layoutMode: 'split',
   inboxDetailOpen: false,
   search: '',
   filterOpen: false,
+  filters: [],
+  labelFilter: null,
   composeOpen: false,
-  starredIds: ['stripe-payout'],
-  setSelectedId: (selectedId) => set({ selectedId }),
-  setActiveFolder: (activeFolder) => set({ activeFolder }),
+  composeDraft: {},
+  // A uid only identifies a message within its own folder.
+  setFolder: (folder) => set({ folder, selectedUid: null, inboxDetailOpen: false }),
+  setSelectedUid: (selectedUid) => set({ selectedUid }),
   setLayoutMode: (layoutMode) => set({ layoutMode }),
   setInboxDetailOpen: (inboxDetailOpen) => set({ inboxDetailOpen }),
   setSearch: (search) => set({ search }),
   toggleFilterOpen: () => set((state) => ({ filterOpen: !state.filterOpen })),
   setFilterOpen: (filterOpen) => set({ filterOpen }),
-  setComposeOpen: (composeOpen) => set({ composeOpen }),
-  toggleStar: (id) =>
+  setLabelFilter: (labelFilter) => set({ labelFilter }),
+  toggleFilter: (filter) =>
     set((state) => ({
-      starredIds: state.starredIds.includes(id)
-        ? state.starredIds.filter((value) => value !== id)
-        : [...state.starredIds, id],
+      filters: state.filters.includes(filter)
+        ? state.filters.filter((value) => value !== filter)
+        : [...state.filters, filter],
     })),
+  openCompose: (composeDraft = {}) => set({ composeOpen: true, composeDraft }),
+  closeCompose: () => set({ composeOpen: false, composeDraft: {} }),
 }))

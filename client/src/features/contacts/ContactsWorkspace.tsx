@@ -1,8 +1,9 @@
+import type { ContactItem } from '@api/types'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Building2, Mail, Phone, UsersRound } from 'lucide-react'
-import type { Contact } from '../../api/contacts'
-import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
+import { Building2, Mail, Pencil, Phone, UsersRound } from 'lucide-react'
+import { AppShell } from '../../components/shell/AppShell'
+import { AccountDock } from '../auth/AccountDock'
 import { Avatar } from '../../components/ui/avatar'
 import { Button } from '../../components/ui/button'
 import { SearchField } from '../../components/ui/search-field'
@@ -10,10 +11,15 @@ import { List, ListRow } from '../../components/ui/list'
 import { Panel } from '../../components/ui/panel'
 import { QueryState } from '../../components/ui/query-state'
 import { SkeletonRow } from '../../components/ui/skeleton'
+import { avatarTone, initialsOf } from '../../lib/format'
+import { LabelChips } from '../labels/LabelChips'
+import { LabelPicker } from '../labels/LabelPicker'
 import { useContactsUiStore } from '../../stores/contactsUiStore'
 import { ContactFormPanel } from './ContactFormPanel'
 import { contactsQueries } from './queries'
 import './contacts.css'
+
+const primaryEmail = (contact: ContactItem) => contact.emails[0]?.value ?? ''
 
 export function ContactsWorkspace() {
   const { data, isPending, isError, error, refetch, isFetching } = useQuery(contactsQueries.contacts())
@@ -22,14 +28,17 @@ export function ContactsWorkspace() {
   const setSearch = useContactsUiStore((state) => state.setSearch)
   const selectedId = useContactsUiStore((state) => state.selectedId)
   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
-  const createOpen = useContactsUiStore((state) => state.createOpen)
-  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
+  const panel = useContactsUiStore((state) => state.panel)
+  const setPanel = useContactsUiStore((state) => state.setPanel)
 
   const visible = useMemo(() => {
     const normalized = search.trim().toLowerCase()
     if (!normalized) return contacts
     return contacts.filter((contact) =>
-      [contact.name, contact.email, contact.company, contact.role].join(' ').toLowerCase().includes(normalized),
+      [contact.name, primaryEmail(contact), contact.organization ?? '', contact.title ?? '']
+        .join(' ')
+        .toLowerCase()
+        .includes(normalized),
     )
   }, [contacts, search])
 
@@ -45,16 +54,10 @@ export function ContactsWorkspace() {
             <span>All contacts</span>
             <span className="folder-count">{contacts.length || '—'}</span>
           </button>
-          <button className="folder-item" type="button">
-            <Building2 size={18} strokeWidth={1.75} />
-            <span>Companies</span>
-          </button>
         </nav>
       }
       dock={
-        <div className="sidebar-controls">
-          <ThemeToggle />
-        </div>
+<AccountDock />
       }
     >
       <main className="inbox-column contacts-main">
@@ -88,14 +91,16 @@ export function ContactsWorkspace() {
               description={`${visible.length} people`}
               className="contacts-list-panel"
               actions={
-                <Button size="sm" onClick={() => setCreateOpen(true)}>
+                <Button size="sm" onClick={() => setPanel('create')}>
                   New contact
                 </Button>
               }
             >
               <List label="Contacts">
                 {visible.length === 0 ? (
-                  <div className="loading-state">No contacts match “{search}”.</div>
+                  <div className="loading-state">
+                    {search.trim() ? `No contacts match “${search}”.` : 'This address book is empty.'}
+                  </div>
                 ) : (
                   visible.map((contact) => (
                     <ContactRow
@@ -109,37 +114,54 @@ export function ContactsWorkspace() {
               </List>
             </Panel>
 
-            {createOpen ? (
-              <ContactFormPanel />
+            {panel !== 'none' ? (
+              <ContactFormPanel key={panel === 'edit' ? selected?.id : 'new'} contact={panel === 'edit' ? selected : undefined} />
             ) : (
               <section className="contacts-detail reader-panel">
                 {selected ? (
                   <>
                     <div className="reader-sender">
-                      <Avatar initials={selected.initials} tone={selected.avatarTone} size="large" />
+                      <Avatar initials={initialsOf(selected.name)} tone={avatarTone(selected.id)} size="large" />
                       <div className="sender-details">
                         <h2>{selected.name}</h2>
                         <p>
-                          {selected.role}
+                          {selected.title ?? '—'}
                           <br />
-                          {selected.company}
+                          {selected.organization ?? '—'}
                         </p>
                       </div>
+                      <Button size="sm" variant="outline" onClick={() => setPanel('edit')}>
+                        <Pencil size={15} strokeWidth={1.75} /> Edit
+                      </Button>
+                    </div>
+                    <div className="detail-labels">
+                      <LabelPicker kind="contact" resourceId={selected.id} active={selected.labelIds} />
+                      <LabelChips ids={selected.labelIds} />
                     </div>
                     <div className="contact-fields">
-                      <p>
-                        <Mail size={15} strokeWidth={1.75} /> {selected.email}
-                      </p>
-                      <p>
-                        <Phone size={15} strokeWidth={1.75} /> {selected.phone}
-                      </p>
-                      <p>
-                        <Building2 size={15} strokeWidth={1.75} /> {selected.company}
-                      </p>
+                      {selected.emails.map((email) => (
+                        <p key={email.value}>
+                          <Mail size={15} strokeWidth={1.75} /> {email.value}
+                          {email.type ? <em>{email.type}</em> : null}
+                        </p>
+                      ))}
+                      {selected.phones.map((phone) => (
+                        <p key={phone.value}>
+                          <Phone size={15} strokeWidth={1.75} /> {phone.value}
+                          {phone.type ? <em>{phone.type}</em> : null}
+                        </p>
+                      ))}
+                      {selected.organization ? (
+                        <p>
+                          <Building2 size={15} strokeWidth={1.75} /> {selected.organization}
+                        </p>
+                      ) : null}
                     </div>
-                    <div className="message-body">
-                      <p>{selected.notes}</p>
-                    </div>
+                    {selected.note ? (
+                      <div className="message-body">
+                        <p>{selected.note}</p>
+                      </div>
+                    ) : null}
                   </>
                 ) : (
                   <p className="loading-state">Select a contact to view details.</p>
@@ -158,7 +180,7 @@ function ContactRow({
   selected,
   onSelect,
 }: {
-  contact: Contact
+  contact: ContactItem
   selected: boolean
   onSelect: () => void
 }) {
@@ -166,14 +188,14 @@ function ContactRow({
     <ListRow
       selected={selected}
       onSelect={onSelect}
-      leading={<Avatar initials={contact.initials} tone={contact.avatarTone} />}
+      leading={<Avatar initials={initialsOf(contact.name)} tone={avatarTone(contact.id)} />}
     >
       <div className="mail-card-topline">
         <h2>{contact.name}</h2>
-        <time>{contact.company}</time>
+        <time>{contact.organization ?? ''}</time>
       </div>
-      <div className="sender-name">{contact.role}</div>
-      <p>{contact.email}</p>
+      <div className="sender-name">{contact.title ?? ''}</div>
+      <p>{primaryEmail(contact)}</p>
     </ListRow>
   )
 }

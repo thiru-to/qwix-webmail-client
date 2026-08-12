@@ -3,14 +3,14 @@
   background: transparent;
   border: 0;
   border-radius: 999px;
-  color: #526078;
+  color: var(--muted);
   display: inline-flex;
   justify-content: center;
   padding: 4px;
   transition: background .18s ease, color .18s ease, transform .18s ease;
 }
 .ui-icon-button:hover {
-  background: #243247;
+  background: var(--surface-hover);
   color: var(--amber);
   transform: scale(1.06);
 }
@@ -35,7 +35,7 @@
   margin: 4px 0;
 }
 .ui-panel-description {
-  color: #8592a6;
+  color: var(--muted);
   font-size: 14px;
 }
 
@@ -116,7 +116,7 @@
 }
 
 .ui-skeleton {
-  background: linear-gradient(90deg, #1a2332 0%, #243247 50%, #1a2332 100%);
+  background: linear-gradient(90deg, #141414 0%, #2a2a2a 50%, #141414 100%);
   background-size: 200% 100%;
   border-radius: 10px;
   display: block;
@@ -213,9 +213,7 @@
   margin: 0;
 }
 .ui-textarea,
-.ui-form-field .ui-input,
-.ui-dialog .ui-input,
-.ui-dialog textarea {
+.ui-form-field .ui-input {
   background: var(--surface-control);
   border: 1px solid var(--line);
   border-radius: 11px;
@@ -227,30 +225,18 @@
   min-height: 40px;
   padding: 0 12px;
 }
-.ui-dialog .ui-input {
-  min-height: 45px;
-  padding: 0 13px;
-}
-.ui-textarea,
-.ui-dialog textarea {
+.ui-textarea {
   min-height: 132px;
   padding: 12px 13px;
   resize: vertical;
 }
-.ui-dialog textarea {
-  min-height: 180px;
-}
 .ui-textarea::placeholder,
 .ui-form-field .ui-input::placeholder,
-.ui-dialog textarea::placeholder,
-.ui-dialog .ui-input::placeholder,
 .ui-chip-input input::placeholder {
   color: var(--muted);
 }
 .ui-textarea:focus,
 .ui-form-field .ui-input:focus,
-.ui-dialog textarea:focus,
-.ui-dialog .ui-input:focus,
 .ui-chip-input:focus-within {
   border-color: var(--pink);
   box-shadow: 0 0 0 3px #ff176a30;
@@ -305,68 +291,12 @@
   outline: 0;
 }
 
-.ui-tone-picker {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.ui-tone-swatch {
-  border: 2px solid transparent;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--line-bright);
-  height: 28px;
-  padding: 0;
-  transition: box-shadow .18s ease, transform .18s ease;
-  width: 28px;
-}
-.ui-tone-swatch:hover {
-  transform: scale(1.08);
-}
-.ui-tone-swatch.active {
-  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--pink);
-}
-.tone-rose { background: #ff4e91; }
-.tone-green { background: #20d19b; }
-.tone-purple { background: #8b6ee8; }
-.tone-orange { background: #f59e42; }
-.tone-plum { background: #c83f91; }
-
-.ui-dialog-backdrop {
-  align-items: center;
-  background: #03060bbd;
-  display: flex;
-  inset: 0;
-  justify-content: center;
-  padding: 24px;
-  position: fixed;
-  z-index: 10;
-}
-.ui-dialog {
-  background: var(--panel-raised);
-  border: 1px solid var(--line-bright);
-  border-radius: 24px;
-  box-shadow: 0 25px 80px #0009;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: calc(100svh - 48px);
-  max-width: 540px;
-  overflow: auto;
-  padding: 24px;
-  width: 100%;
-}
-.ui-dialog-header,
 .ui-side-panel-header {
   align-items: flex-start;
   display: flex;
   flex: none;
   justify-content: space-between;
 }
-.ui-dialog-header {
-  margin-bottom: 7px;
-}
-.ui-dialog-header h2,
 .ui-side-panel-header h2 {
   color: var(--text);
   font-size: 25px;
@@ -393,18 +323,9 @@
 }
 .close-dialog:focus-visible,
 .discard-button:focus-visible,
-.ui-chip > button:focus-visible,
-.ui-tone-swatch:focus-visible {
+.ui-chip > button:focus-visible {
   outline: 2px solid #ff73ac;
   outline-offset: 2px;
-}
-.ui-dialog-footer,
-.compose-footer {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 6px;
 }
 .discard-button {
   border-radius: 10px;
@@ -501,18 +422,11 @@
   border-color: #ff4e9166;
   color: #a9104c;
 }
-.theme-light .ui-tone-swatch.active {
-  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--pink);
-}
-.theme-light .ui-dialog {
-  background: var(--panel-raised);
-  border-color: var(--line);
-  box-shadow: 0 25px 80px #40506933;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .ui-skeleton,
   .ui-spinner {
     animation: none;
   }
 }
+
+.ui-chip em { color: var(--muted); font-size: 11px; font-style: normal; margin-left: 6px; }

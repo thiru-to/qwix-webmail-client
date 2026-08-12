@@ -1,33 +1,34 @@
-import type { CalendarData, CalendarDay, CalendarEvent } from '../../data/mockCalendar'
-import { eventsForDate } from '../../data/mockCalendar'
+import {
+  GRID_END_HOUR,
+  GRID_START_HOUR,
+  HOURS,
+  WEEKDAYS,
+  dateFromIso,
+  eventsOnDate,
+  type CalendarDay,
+  type EventView,
+} from '../../lib/calendar'
 
-type MonthViewProps = {
-  data: CalendarData
+type GridProps = {
   days: CalendarDay[]
+  events: EventView[]
   focusDate: string
+  selectedEventId: string
   onSelectDate: (date: string) => void
   onSelectEvent: (id: string) => void
-  selectedEventId: string
 }
 
-export function MonthView({
-  data,
-  days,
-  focusDate,
-  onSelectDate,
-  onSelectEvent,
-  selectedEventId,
-}: MonthViewProps) {
+export function MonthView({ days, events, focusDate, selectedEventId, onSelectDate, onSelectEvent }: GridProps) {
   return (
     <div className="calendar-view month-view">
       <div className="calendar-weekdays">
-        {data.weekdays.map((day) => (
+        {WEEKDAYS.map((day) => (
           <span key={day}>{day}</span>
         ))}
       </div>
       <div className="calendar-grid month-grid">
         {days.map((day) => {
-          const dayEvents = eventsForDate(data.events, day.date)
+          const dayEvents = eventsOnDate(events, day.date)
           return (
             <div
               key={day.date}
@@ -36,7 +37,7 @@ export function MonthView({
                 day.inMonth ? '' : 'out-month',
                 day.isToday ? 'current' : '',
                 day.date === focusDate ? 'focused' : '',
-                day.hasEvents ? 'has-events' : '',
+                dayEvents.length ? 'has-events' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -80,33 +81,23 @@ export function MonthView({
   )
 }
 
-export function FourWeekView(props: MonthViewProps) {
+export function FourWeekView(props: GridProps) {
   return <MonthView {...props} />
 }
 
-type TimeGridProps = {
-  data: CalendarData
-  days: CalendarDay[]
-  events: CalendarEvent[]
-  selectedEventId: string
-  onSelectEvent: (id: string) => void
-  onSelectDate: (date: string) => void
-}
-
-const GRID_START = 8 * 60
-const GRID_END = 18 * 60
+const GRID_START = GRID_START_HOUR * 60
+const GRID_END = GRID_END_HOUR * 60
 const GRID_SPAN = GRID_END - GRID_START
 
-function eventStyle(event: CalendarEvent) {
+function eventStyle(event: EventView) {
   const top = ((Math.max(event.startMinutes, GRID_START) - GRID_START) / GRID_SPAN) * 100
   const bottom = ((GRID_END - Math.min(event.endMinutes, GRID_END)) / GRID_SPAN) * 100
-  return {
-    top: `${top}%`,
-    bottom: `${Math.max(bottom, 0)}%`,
-  }
+  return { top: `${Math.max(top, 0)}%`, bottom: `${Math.max(bottom, 0)}%` }
 }
 
-export function WeekView({ data, days, events, selectedEventId, onSelectEvent, onSelectDate }: TimeGridProps) {
+export function WeekView({ days, events, focusDate, selectedEventId, onSelectDate, onSelectEvent }: GridProps) {
+  const allDay = events.filter((event) => event.allDay)
+
   return (
     <div className="calendar-view week-view">
       <div className="time-grid-header">
@@ -115,31 +106,52 @@ export function WeekView({ data, days, events, selectedEventId, onSelectEvent, o
           <button
             key={day.date}
             type="button"
-            className={`time-grid-day-head ${day.isToday ? 'current' : ''} ${day.date === data.focusDate ? 'focused' : ''}`}
+            className={`time-grid-day-head ${day.isToday ? 'current' : ''} ${day.date === focusDate ? 'focused' : ''}`}
             onClick={() => onSelectDate(day.date)}
           >
-            <span>{data.weekdays[new Date(`${day.date}T12:00:00`).getDay()]}</span>
+            <span>{WEEKDAYS[dateFromIso(day.date).getDay()]}</span>
             <strong>{day.dayOfMonth}</strong>
           </button>
         ))}
       </div>
+
+      {allDay.length ? (
+        <div className="time-grid-allday">
+          <span className="time-gutter-spacer">All day</span>
+          {days.map((day) => (
+            <div key={day.date} className="allday-cell">
+              {eventsOnDate(allDay, day.date).map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  className={`calendar-pill ${event.tone} ${event.id === selectedEventId ? 'selected' : ''}`}
+                  onClick={() => onSelectEvent(event.id)}
+                >
+                  {event.title}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <div className="time-grid-body">
         <div className="time-gutter">
-          {data.hours.map((hour) => (
+          {HOURS.map((hour) => (
             <div key={hour} className="time-gutter-slot">
               {hour}
             </div>
           ))}
         </div>
         <div className="time-columns" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}>
-          {days.map((day) => {
-            const dayEvents = events.filter((event) => event.date === day.date)
-            return (
-              <div key={day.date} className="time-column">
-                {data.hours.map((hour) => (
-                  <div key={hour} className="time-slot" />
-                ))}
-                {dayEvents.map((event) => (
+          {days.map((day) => (
+            <div key={day.date} className="time-column">
+              {HOURS.map((hour) => (
+                <div key={hour} className="time-slot" />
+              ))}
+              {eventsOnDate(events, day.date)
+                .filter((event) => !event.allDay)
+                .map((event) => (
                   <button
                     key={event.id}
                     type="button"
@@ -148,48 +160,40 @@ export function WeekView({ data, days, events, selectedEventId, onSelectEvent, o
                     onClick={() => onSelectEvent(event.id)}
                   >
                     <strong>{event.title}</strong>
-                    <span>{event.time}</span>
+                    <span>{event.timeLabel}</span>
                   </button>
                 ))}
-              </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </div>
   )
 }
 
-export function DayView({ data, days, events, selectedEventId, onSelectEvent, onSelectDate }: TimeGridProps) {
+export function DayView(props: GridProps) {
   return (
     <div className="calendar-view day-view">
-      <WeekView
-        data={data}
-        days={days}
-        events={events}
-        selectedEventId={selectedEventId}
-        onSelectEvent={onSelectEvent}
-        onSelectDate={onSelectDate}
-      />
+      <WeekView {...props} />
     </div>
   )
 }
 
 type YearViewProps = {
-  data: CalendarData
+  months: { label: string; month: number; days: CalendarDay[] }[]
   focusDate: string
   onSelectDate: (date: string) => void
 }
 
-export function YearView({ data, focusDate, onSelectDate }: YearViewProps) {
+export function YearView({ months, focusDate, onSelectDate }: YearViewProps) {
   return (
     <div className="calendar-view year-view">
       <div className="year-grid">
-        {data.yearMonths.map((month) => (
+        {months.map((month) => (
           <section key={month.label} className="year-month">
             <h3>{month.label}</h3>
             <div className="year-weekdays">
-              {data.weekdays.map((day) => (
+              {WEEKDAYS.map((day) => (
                 <span key={day}>{day[0]}</span>
               ))}
             </div>
