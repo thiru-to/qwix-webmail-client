@@ -1,7 +1,6 @@
-import { PanelLeft, PanelRight, PenLine, SquareArrowOutUpRight } from 'lucide-react'
+import { PanelLeft, PanelRight } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
-import { Button } from '../../components/ui/button'
 import { StorageMeter } from '../../components/ui/storage-meter'
 import { useMailUiStore } from '../../stores/mailUiStore'
 import { useShellStore } from '../../stores/shellStore'
@@ -35,13 +34,6 @@ export function MailWorkspace() {
   return (
     <AppShell
       workspaceClassName={layoutMode === 'inbox' ? 'workspace-inbox' : undefined}
-      primaryAction={
-        <Button aria-label="Compose new message" className="compose-button" onClick={() => setComposeOpen(true)}>
-          <PenLine size={18} strokeWidth={1.75} />
-          <span className="compose-label">Compose</span>
-          <SquareArrowOutUpRight className="compose-external" size={16} strokeWidth={1.75} />
-        </Button>
-      }
       sidebar={<MailSidebar />}
       dock={
         <>

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Filter, MoreHorizontal } from 'lucide-react'
+import { Filter, MoreHorizontal, PenLine } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { mailQueries } from './queries'
 import { MailCard } from './MailCard'
@@ -24,20 +24,22 @@ export function MessageList() {
   const selectedId = useMailUiStore((state) => state.selectedId)
   const setSelectedId = useMailUiStore((state) => state.setSelectedId)
   const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
+  const setComposeOpen = useMailUiStore((state) => state.setComposeOpen)
   const starredIds = useMailUiStore((state) => state.starredIds)
   const toggleStar = useMailUiStore((state) => state.toggleStar)
 
   const messages = data?.messages ?? emptyMessages
   const visibleMessages = useMemo(() => {
+    const folderMessages = messages.filter((message) => message.folder === activeFolder)
     const normalizedSearch = search.trim().toLowerCase()
-    if (!normalizedSearch) return messages
-    return messages.filter((message) =>
+    if (!normalizedSearch) return folderMessages
+    return folderMessages.filter((message) =>
       [message.sender, message.subject, message.preview, ...message.labels]
         .join(' ')
         .toLowerCase()
         .includes(normalizedSearch),
     )
-  }, [messages, search])
+  }, [activeFolder, messages, search])
 
   return (
     <>
@@ -59,6 +61,9 @@ export function MessageList() {
           </p>
         </div>
         <div className="heading-actions">
+          <Button size="sm" onClick={() => setComposeOpen(true)}>
+            <PenLine size={16} strokeWidth={1.75} /> Compose
+          </Button>
           <button
             className={filterOpen ? 'filter-button active' : 'filter-button'}
             type="button"

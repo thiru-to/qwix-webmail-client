@@ -1,9 +1,20 @@
-.compose-validation {
+.compose-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.compose-mutation-error {
   color: #ff9ac5;
   font-size: 13px;
   margin: 0;
 }
 
-.send-button:disabled {
+.compose-form + .ui-dialog-footer .ui-button {
+  gap: 8px;
+}
+
+.compose-form + .ui-dialog-footer .ui-button:disabled {
+  cursor: wait;
   opacity: 0.75;
 }
