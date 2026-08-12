@@ -10,13 +10,17 @@ import { QueryState } from '../../components/ui/query-state'
 import { SkeletonRow } from '../../components/ui/skeleton'
 import { contactsQueries } from './queries'
 import type { Contact } from '../../data/mockContacts'
+import { useContactsUiStore } from '../../stores/contactsUiStore'
+import { useShellStore } from '../../stores/shellStore'
 import './contacts.css'
 
 export function ContactsWorkspace() {
   const { data, isPending, isError, error, refetch, isFetching } = useQuery(contactsQueries.contacts())
   const contacts = useMemo(() => data?.contacts ?? [], [data?.contacts])
   const [search, setSearch] = useState('')
-  const [selectedId, setSelectedId] = useState('avery')
+  const selectedId = useContactsUiStore((state) => state.selectedId)
+  const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
+  const sidebarCollapsed = useShellStore((state) => state.sidebarCollapsed)
 
   const visible = useMemo(() => {
     const normalized = search.trim().toLowerCase()
@@ -33,12 +37,20 @@ export function ContactsWorkspace() {
       workspaceClassName="workspace-inbox product-contacts"
       sidebar={
         <nav className="folder-list" aria-label="Contact groups">
-          <button className="folder-item active" type="button">
+          <button
+            className="folder-item active"
+            title={sidebarCollapsed ? 'All contacts' : undefined}
+            type="button"
+          >
             <UsersRound size={18} strokeWidth={1.75} />
             <span>All contacts</span>
             <span className="folder-count">{contacts.length || '—'}</span>
           </button>
-          <button className="folder-item" type="button">
+          <button
+            className="folder-item"
+            title={sidebarCollapsed ? 'Companies' : undefined}
+            type="button"
+          >
             <Building2 size={18} strokeWidth={1.75} />
             <span>Companies</span>
           </button>
