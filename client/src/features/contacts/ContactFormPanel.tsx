@@ -82,7 +82,10 @@ export function ContactFormPanel() {
             id="contact-name"
             autoFocus
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value)
+              setValidation((current) => ({ ...current, name: undefined }))
+            }}
             placeholder="Full name"
           />
         </FormField>
@@ -91,7 +94,10 @@ export function ContactFormPanel() {
             id="contact-email"
             type="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value)
+              setValidation((current) => ({ ...current, email: undefined }))
+            }}
             placeholder="name@example.com"
           />
         </FormField>

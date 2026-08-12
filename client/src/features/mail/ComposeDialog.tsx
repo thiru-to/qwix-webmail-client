@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Send } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { ChipInput } from '../../components/ui/chip-input'
@@ -26,8 +26,7 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
   const [validation, setValidation] = useState<ValidationErrors>({})
   const { mutateAsync, isPending, error, reset } = useCreateMessage()
 
-  useEffect(() => {
-    if (open) return
+  function resetForm() {
     setTo('')
     setCc([])
     setBcc([])
@@ -36,7 +35,12 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
     setAttachments([])
     setValidation({})
     reset()
-  }, [open, reset])
+  }
+
+  function closeDialog() {
+    resetForm()
+    onClose()
+  }
 
   async function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -60,6 +64,7 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
         body,
         attachments: attachments.length ? attachments : undefined,
       })
+      resetForm()
     } catch {
       // The mutation error is rendered inline below the form.
     }
@@ -68,7 +73,7 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={closeDialog}
       eyebrow="New message"
       title="Compose"
       footer={
@@ -77,7 +82,7 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
             {isPending ? <Spinner size={14} /> : null}
             Send <Send size={15} strokeWidth={1.75} />
           </Button>
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={closeDialog}>
             Discard
           </Button>
         </div>
@@ -89,7 +94,10 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
             id="compose-to"
             placeholder="name@example.com"
             value={to}
-            onChange={(event) => setTo(event.target.value)}
+            onChange={(event) => {
+              setTo(event.target.value)
+              setValidation((current) => ({ ...current, to: undefined }))
+            }}
           />
         </FormField>
         <FormField label="Cc" htmlFor="compose-cc">
@@ -115,7 +123,10 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
             id="compose-subject"
             placeholder="Subject"
             value={subject}
-            onChange={(event) => setSubject(event.target.value)}
+            onChange={(event) => {
+              setSubject(event.target.value)
+              setValidation((current) => ({ ...current, subject: undefined }))
+            }}
           />
         </FormField>
         <FormField label="Message" htmlFor="compose-body" error={validation.body}>
@@ -123,7 +134,10 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
             id="compose-body"
             placeholder="Write your message…"
             value={body}
-            onChange={(event) => setBody(event.target.value)}
+            onChange={(event) => {
+              setBody(event.target.value)
+              setValidation((current) => ({ ...current, body: undefined }))
+            }}
           />
         </FormField>
         <FormField label="Attachments" htmlFor="compose-attachments">

@@ -105,7 +105,10 @@ export function EventFormPanel() {
             id="event-title"
             autoFocus
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value)
+              setValidation((current) => ({ ...current, title: undefined }))
+            }}
             placeholder="Event title"
           />
         </FormField>
@@ -114,7 +117,10 @@ export function EventFormPanel() {
             id="event-date"
             type="date"
             value={date}
-            onChange={(event) => setDate(event.target.value)}
+            onChange={(event) => {
+              setDate(event.target.value)
+              setValidation((current) => ({ ...current, date: undefined }))
+            }}
           />
         </FormField>
         <div className="calendar-event-time-fields">
@@ -123,7 +129,10 @@ export function EventFormPanel() {
               id="event-start"
               type="time"
               value={minutesToTimeInput(startMinutes)}
-              onChange={(event) => setStartMinutes(parseTimeToMinutes(event.target.value))}
+              onChange={(event) => {
+                setStartMinutes(parseTimeToMinutes(event.target.value))
+                setValidation((current) => ({ ...current, endMinutes: undefined }))
+              }}
             />
           </FormField>
           <FormField label="Ends" htmlFor="event-end" error={validation.endMinutes}>
@@ -131,7 +140,10 @@ export function EventFormPanel() {
               id="event-end"
               type="time"
               value={minutesToTimeInput(endMinutes)}
-              onChange={(event) => setEndMinutes(parseTimeToMinutes(event.target.value))}
+              onChange={(event) => {
+                setEndMinutes(parseTimeToMinutes(event.target.value))
+                setValidation((current) => ({ ...current, endMinutes: undefined }))
+              }}
             />
           </FormField>
         </div>
