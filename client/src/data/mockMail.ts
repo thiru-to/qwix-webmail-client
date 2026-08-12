@@ -15,6 +15,9 @@ export type Mail = {
   labels: MailLabel[]
   attachments?: string[]
   body: string[]
+  folder: string
+  cc?: string[]
+  bcc?: string[]
 }
 
 export const mailbox = {
@@ -53,6 +56,7 @@ export const mailbox = {
       preview: 'Your daily automatic payout of $3,450.00 USD has been initiated and will arrive in your checking account within 1 business day…',
       time: '9:42 AM',
       date: 'Aug 5, 2026',
+      folder: 'Inbox',
       unread: true,
       starred: true,
       labels: ['Finance'],
@@ -75,6 +79,7 @@ export const mailbox = {
       preview: 'Below is the full operating brief for the Q3 migration. Please review every section before Thursday’s steering call — especially the rollback criteria and staffing plan…',
       time: '7:58 AM',
       date: 'Aug 5, 2026',
+      folder: 'Inbox',
       unread: true,
       labels: ['Personal'],
       attachments: ['Q3_Ops_Brief.pdf', 'risk_register.csv', 'migration_runbook.md'],
@@ -105,6 +110,7 @@ export const mailbox = {
       preview: 'Attached and pasted below is the full v4 retention draft. It is intentionally long because counsel asked for examples, edge cases, and a phased rollout narrative your team can execute…',
       time: '7:12 AM',
       date: 'Aug 5, 2026',
+      folder: 'Inbox',
       unread: true,
       labels: ['Security'],
       attachments: ['Retention_Policy_v4.docx', 'implementation_checklist.pdf'],
@@ -135,6 +141,7 @@ export const mailbox = {
       preview: "Hi Courtney! I've attached the new promotional flyers, social media banners, and print-ready PDFs for our Q3 marketing campaign…",
       time: '8:15 AM',
       date: 'Aug 5, 2026',
+      folder: 'Inbox',
       unread: true,
       labels: ['Marketing'],
       attachments: ['Q3_campaign_assets.zip', 'social_banners.fig'],
@@ -150,6 +157,7 @@ export const mailbox = {
       preview: 'Congratulations! Your online store generated 24 new orders yesterday with total gross sales of $1,840.00. 2 items require shipment…',
       time: 'Yesterday',
       date: 'Aug 4, 2026',
+      folder: 'Inbox',
       labels: ['Orders'],
       body: ['Good morning,', 'Your store had a strong day. Twenty-four new orders came in, with two orders waiting for shipment.', 'Open your store dashboard to review the full breakdown.'],
     },
@@ -163,6 +171,7 @@ export const mailbox = {
       preview: 'Loved your professional domain email setup! Would love to catch up for 20 minutes this Thursday to discuss networking & growth…',
       time: 'Aug 3',
       date: 'Aug 3, 2026',
+      folder: 'Inbox',
       labels: ['Personal'],
       body: ['Hey Courtney,', 'Loved your professional domain email setup. Would love to catch up for 20 minutes this Thursday to discuss networking and growth.', 'Would 2:30 PM work for you?'],
     },
@@ -176,6 +185,7 @@ export const mailbox = {
       preview: 'Your wildcard SSL/TLS edge certificate for *.yourdomain.com has been automatically renewed for 365 days…',
       time: 'Aug 1',
       date: 'Aug 1, 2026',
+      folder: 'Inbox',
       labels: ['Security'],
       body: ['Your certificate renewal is complete.', 'The wildcard certificate for *.yourdomain.com is active for another 365 days. No action is required.'],
     },
@@ -189,10 +199,11 @@ export const mailbox = {
       preview: 'Catch up on the most interesting launches, tools, and ideas from makers around the world…',
       time: 'Jul 31',
       date: 'Jul 31, 2026',
+      folder: 'Inbox',
       labels: ['Socials'],
       body: ['Here are this week’s top launches from the Product Hunt community.'],
     },
-  ] satisfies Mail[],
+  ] as Mail[],
 }
 
 export type Mailbox = typeof mailbox

@@ -10,6 +10,7 @@ export type CalendarEvent = {
   location: string
   tone: EventTone
   attendees: string[]
+  notes?: string
   /** Minutes from midnight */
   startMinutes: number
   endMinutes: number
@@ -234,4 +235,51 @@ export function eventsForDate(events: CalendarEvent[], date: string) {
 export function eventsForDates(events: CalendarEvent[], dates: string[]) {
   const set = new Set(dates)
   return events.filter((event) => set.has(event.date))
+}
+
+export function appendCalendarEvent(event: CalendarEvent): CalendarEvent {
+  calendarEvents.push(event)
+  for (const day of [
+    ...calendarData.monthDays,
+    ...calendarData.fourWeekDays,
+    ...calendarData.weekDays,
+    ...calendarData.yearMonths.flatMap((m) => m.days),
+  ]) {
+    if (day.date === event.date) day.hasEvents = true
+  }
+  return event
+}
+
+function formatEventTime(startMinutes: number, endMinutes: number): string {
+  const fmt = (mins: number) => {
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    const period = h >= 12 ? 'PM' : 'AM'
+    const hour12 = h % 12 === 0 ? 12 : h % 12
+    return `${hour12}:${String(m).padStart(2, '0')} ${period}`
+  }
+  return `${fmt(startMinutes)} – ${fmt(endMinutes)}`
+}
+
+function formatEventDay(date: string): string {
+  const d = new Date(`${date}T12:00:00`)
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).replace(',', ' ·')
+}
+
+export function buildCalendarEvent(input: {
+  id: string
+  title: string
+  date: string
+  startMinutes: number
+  endMinutes: number
+  location: string
+  tone: EventTone
+  attendees: string[]
+  notes?: string
+}): CalendarEvent {
+  return {
+    ...input,
+    time: formatEventTime(input.startMinutes, input.endMinutes),
+    day: formatEventDay(input.date),
+  }
 }
