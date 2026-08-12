@@ -182,12 +182,6 @@
   opacity: 0.75;
 }
 
-.calendar-event-form-error {
-  color: #ff9ac5;
-  font-size: 13px;
-  margin: 0;
-}
-
 .calendar-event-row {
   grid-template-columns: 18px minmax(0, 1fr);
 }

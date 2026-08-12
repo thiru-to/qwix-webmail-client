@@ -82,6 +82,6 @@ export function initialsFromName(name: string): string {
 }
 
 export function appendContact(contact: Contact): Contact {
-  contactsData.contacts.push(contact)
+  contactsData.contacts = [...contactsData.contacts, contact]
   return contact
 }

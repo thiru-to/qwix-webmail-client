@@ -73,7 +73,9 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
   return (
     <Dialog
       open={open}
-      onClose={closeDialog}
+      onClose={() => {
+        if (!isPending) closeDialog()
+      }}
       eyebrow="New message"
       title="Compose"
       footer={
@@ -82,7 +84,7 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
             {isPending ? <Spinner size={14} /> : null}
             Send <Send size={15} strokeWidth={1.75} />
           </Button>
-          <Button type="button" variant="ghost" onClick={closeDialog}>
+          <Button type="button" variant="ghost" onClick={closeDialog} disabled={isPending}>
             Discard
           </Button>
         </div>
@@ -150,7 +152,7 @@ export function ComposeDialog({ open, onClose }: ComposeDialogProps) {
           />
         </FormField>
         {error ? (
-          <p className="compose-mutation-error" role="alert">
+          <p className="ui-form-error" role="alert">
             {error.message}
           </p>
         ) : null}

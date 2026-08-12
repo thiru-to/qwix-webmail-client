@@ -4,12 +4,6 @@
   gap: 14px;
 }
 
-.compose-mutation-error {
-  color: #ff9ac5;
-  font-size: 13px;
-  margin: 0;
-}
-
 .compose-form + .ui-dialog-footer .ui-button {
   gap: 8px;
 }

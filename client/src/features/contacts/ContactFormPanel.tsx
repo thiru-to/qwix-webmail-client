@@ -145,7 +145,7 @@ export function ContactFormPanel() {
           />
         </FormField>
         {error ? (
-          <p className="contact-form-error" role="alert">
+          <p className="ui-form-error" role="alert">
             {error.message}
           </p>
         ) : null}

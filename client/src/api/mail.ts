@@ -45,7 +45,7 @@ export async function createMessage(input: CreateMessageInput): Promise<Mail> {
     cc: input.cc?.length ? input.cc : undefined,
     bcc: input.bcc?.length ? input.bcc : undefined,
   }
-  mailbox.messages.unshift(message)
+  mailbox.messages = [message, ...mailbox.messages]
   const sent = mailbox.folders.find((f) => f.name === 'Sent')
   if (sent) sent.count += 1
   return message

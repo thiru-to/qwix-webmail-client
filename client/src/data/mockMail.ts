@@ -20,7 +20,27 @@ export type Mail = {
   bcc?: string[]
 }
 
-export const mailbox = {
+type MailboxFolder = {
+  name: string
+  icon: string
+  count: number
+}
+
+export type Mailbox = {
+  account: {
+    name: string
+    email: string
+    storageUsed: string
+    storageLimit: string
+    storagePercent: number
+  }
+  folders: MailboxFolder[]
+  secondaryFolders: MailboxFolder[]
+  labels: { name: string; color: string; count: number }[]
+  messages: Mail[]
+}
+
+export const mailbox: Mailbox = {
   account: {
     name: 'Courtney Henry',
     email: 'courtney@qwixmail.com',
@@ -203,7 +223,5 @@ export const mailbox = {
       labels: ['Socials'],
       body: ['Here are this week’s top launches from the Product Hunt community.'],
     },
-  ] as Mail[],
+  ],
 }
-
-export type Mailbox = typeof mailbox

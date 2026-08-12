@@ -20,7 +20,6 @@ export function SidePanel({ open, onClose, title, eyebrow, children, footer, cla
     <section
       className={cn('ui-side-panel reader-panel', className)}
       role="dialog"
-      aria-modal="true"
       aria-labelledby={titleId}
     >
       <div className="ui-side-panel-header">

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -13,6 +13,8 @@ type DialogProps = {
 }
 
 export function Dialog({ open, onClose, title, eyebrow, children, className, footer }: DialogProps) {
+  const titleId = useId()
+
   if (!open) return null
 
   return (
@@ -21,13 +23,13 @@ export function Dialog({ open, onClose, title, eyebrow, children, className, foo
         className={cn('ui-dialog', className)}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialog-title"
+        aria-labelledby={titleId}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="ui-dialog-header">
           <div>
             {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
-            <h2 id="dialog-title">{title}</h2>
+            <h2 id={titleId}>{title}</h2>
           </div>
           <button aria-label="Close dialog" className="close-dialog" type="button" onClick={onClose}>
             <X size={18} strokeWidth={1.75} />

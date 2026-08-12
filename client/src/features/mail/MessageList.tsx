@@ -29,8 +29,11 @@ export function MessageList() {
   const toggleStar = useMailUiStore((state) => state.toggleStar)
 
   const messages = data?.messages ?? emptyMessages
+  const folderMessages = useMemo(
+    () => messages.filter((message) => message.folder === activeFolder),
+    [activeFolder, messages],
+  )
   const visibleMessages = useMemo(() => {
-    const folderMessages = messages.filter((message) => message.folder === activeFolder)
     const normalizedSearch = search.trim().toLowerCase()
     if (!normalizedSearch) return folderMessages
     return folderMessages.filter((message) =>
@@ -39,7 +42,7 @@ export function MessageList() {
         .toLowerCase()
         .includes(normalizedSearch),
     )
-  }, [activeFolder, messages, search])
+  }, [folderMessages, search])
 
   return (
     <>
@@ -57,7 +60,7 @@ export function MessageList() {
           <div className="eyebrow">{activeFolder === 'Inbox' ? 'Primary' : 'Folder view'}</div>
           <h1>{activeFolder}</h1>
           <p>
-            {(data?.messages.length ?? 0).toLocaleString()} Messages <span>•</span> <strong>167 Unread</strong>
+            {folderMessages.length.toLocaleString()} Messages <span>•</span> <strong>167 Unread</strong>
           </p>
         </div>
         <div className="heading-actions">
@@ -101,7 +104,9 @@ export function MessageList() {
           }
         >
           {visibleMessages.length === 0 ? (
-            <div className="loading-state">No messages match “{search}”.</div>
+            <div className="loading-state">
+              {search.trim() ? `No messages match “${search}”.` : `No messages in ${activeFolder}.`}
+            </div>
           ) : (
             visibleMessages.map((message) => (
               <MailCard

@@ -105,7 +105,7 @@ function buildMonthDays(year: number, monthIndex: number, todayIso: string, even
   return cells
 }
 
-export const calendarEvents: CalendarEvent[] = [
+const calendarEvents: CalendarEvent[] = [
   {
     id: 'steering',
     title: 'Q3 Migration Steering',
@@ -238,7 +238,7 @@ export function eventsForDates(events: CalendarEvent[], dates: string[]) {
 }
 
 export function appendCalendarEvent(event: CalendarEvent): CalendarEvent {
-  calendarEvents.push(event)
+  calendarData.events = [...calendarData.events, event]
   for (const day of [
     ...calendarData.monthDays,
     ...calendarData.fourWeekDays,

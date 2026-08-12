@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Building2, Mail, Phone, UsersRound } from 'lucide-react'
 import type { Contact } from '../../api/contacts'
@@ -18,7 +18,8 @@ import './contacts.css'
 export function ContactsWorkspace() {
   const { data, isPending, isError, error, refetch, isFetching } = useQuery(contactsQueries.contacts())
   const contacts = useMemo(() => data?.contacts ?? [], [data?.contacts])
-  const [search, setSearch] = useState('')
+  const search = useContactsUiStore((state) => state.search)
+  const setSearch = useContactsUiStore((state) => state.setSearch)
   const selectedId = useContactsUiStore((state) => state.selectedId)
   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
   const createOpen = useContactsUiStore((state) => state.createOpen)

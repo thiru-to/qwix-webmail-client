@@ -181,7 +181,7 @@ export function EventFormPanel() {
           />
         </FormField>
         {error ? (
-          <p className="calendar-event-form-error" role="alert">
+          <p className="ui-form-error" role="alert">
             {error.message}
           </p>
         ) : null}
