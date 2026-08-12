@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Building2, Mail, Phone, UsersRound } from 'lucide-react'
+import type { Contact } from '../../api/contacts'
 import { AppShell, ThemeToggle } from '../../components/shell/AppShell'
 import { Avatar } from '../../components/ui/avatar'
+import { Button } from '../../components/ui/button'
 import { SearchField } from '../../components/ui/search-field'
 import { List, ListRow } from '../../components/ui/list'
 import { Panel } from '../../components/ui/panel'
 import { QueryState } from '../../components/ui/query-state'
 import { SkeletonRow } from '../../components/ui/skeleton'
-import { contactsQueries } from './queries'
-import type { Contact } from '../../data/mockContacts'
 import { useContactsUiStore } from '../../stores/contactsUiStore'
+import { ContactFormPanel } from './ContactFormPanel'
+import { contactsQueries } from './queries'
 import './contacts.css'
 
 export function ContactsWorkspace() {
@@ -19,6 +21,8 @@ export function ContactsWorkspace() {
   const [search, setSearch] = useState('')
   const selectedId = useContactsUiStore((state) => state.selectedId)
   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
+  const createOpen = useContactsUiStore((state) => state.createOpen)
+  const setCreateOpen = useContactsUiStore((state) => state.setCreateOpen)
 
   const visible = useMemo(() => {
     const normalized = search.trim().toLowerCase()
@@ -82,6 +86,11 @@ export function ContactsWorkspace() {
               title="Contacts"
               description={`${visible.length} people`}
               className="contacts-list-panel"
+              actions={
+                <Button size="sm" onClick={() => setCreateOpen(true)}>
+                  New contact
+                </Button>
+              }
             >
               <List label="Contacts">
                 {visible.length === 0 ? (
@@ -99,39 +108,43 @@ export function ContactsWorkspace() {
               </List>
             </Panel>
 
-            <section className="contacts-detail reader-panel">
-              {selected ? (
-                <>
-                  <div className="reader-sender">
-                    <Avatar initials={selected.initials} tone={selected.avatarTone} size="large" />
-                    <div className="sender-details">
-                      <h2>{selected.name}</h2>
+            {createOpen ? (
+              <ContactFormPanel />
+            ) : (
+              <section className="contacts-detail reader-panel">
+                {selected ? (
+                  <>
+                    <div className="reader-sender">
+                      <Avatar initials={selected.initials} tone={selected.avatarTone} size="large" />
+                      <div className="sender-details">
+                        <h2>{selected.name}</h2>
+                        <p>
+                          {selected.role}
+                          <br />
+                          {selected.company}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="contact-fields">
                       <p>
-                        {selected.role}
-                        <br />
-                        {selected.company}
+                        <Mail size={15} strokeWidth={1.75} /> {selected.email}
+                      </p>
+                      <p>
+                        <Phone size={15} strokeWidth={1.75} /> {selected.phone}
+                      </p>
+                      <p>
+                        <Building2 size={15} strokeWidth={1.75} /> {selected.company}
                       </p>
                     </div>
-                  </div>
-                  <div className="contact-fields">
-                    <p>
-                      <Mail size={15} strokeWidth={1.75} /> {selected.email}
-                    </p>
-                    <p>
-                      <Phone size={15} strokeWidth={1.75} /> {selected.phone}
-                    </p>
-                    <p>
-                      <Building2 size={15} strokeWidth={1.75} /> {selected.company}
-                    </p>
-                  </div>
-                  <div className="message-body">
-                    <p>{selected.notes}</p>
-                  </div>
-                </>
-              ) : (
-                <p className="loading-state">Select a contact to view details.</p>
-              )}
-            </section>
+                    <div className="message-body">
+                      <p>{selected.notes}</p>
+                    </div>
+                  </>
+                ) : (
+                  <p className="loading-state">Select a contact to view details.</p>
+                )}
+              </section>
+            )}
           </div>
         </QueryState>
       </main>

@@ -7,6 +7,8 @@ import {
 } from '../data/mockContacts'
 import { delay, maybeFail } from './client'
 
+export type { Contact, ContactsData }
+
 export type CreateContactInput = {
   name: string
   email: string
