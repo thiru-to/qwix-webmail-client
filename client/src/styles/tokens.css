@@ -1,0 +1,48 @@
+:root {
+  --canvas: #0b1018;
+  --chrome: #151c29;
+  --panel: #101722;
+  --panel-raised: #181f2c;
+  --panel-soft: #131b27;
+  --line: #253043;
+  --line-bright: #303c50;
+  --text: #f1f3f8;
+  --muted: #8592a7;
+  --muted-strong: #a7b1c2;
+  --surface-hover: #18212f;
+  --surface-control: #151e2c;
+  --card-border: #263247;
+  --pink: #ff176a;
+  --pink-soft: #490f2f;
+  --pink-faint: #251122;
+  --green: #20d19b;
+  --amber: #ffcb21;
+  --cyan: #6fe2e5;
+  --sidebar-width: 320px;
+  --list-width: 610px;
+}
+
+.theme-light {
+  --canvas: #f3f5f8;
+  --chrome: #ffffff;
+  --panel: #f8fafc;
+  --panel-raised: #ffffff;
+  --panel-soft: #f1f4f8;
+  --line: #dbe1ea;
+  --line-bright: #cbd4e0;
+  --text: #172033;
+  --muted: #65738a;
+  --muted-strong: #405069;
+  --surface-hover: #e9eef5;
+  --surface-control: #f3f6fa;
+  --card-border: #dbe2ec;
+  --pink-soft: #ffe6f0;
+  --pink-faint: #fff2f7;
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --sidebar-width: 245px;
+    --list-width: 500px;
+  }
+}
