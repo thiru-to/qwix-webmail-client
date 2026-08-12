@@ -1,0 +1,21 @@
+{
+  "name": "qwix-webmail-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n api,client -c cyan,magenta \"pnpm dev:api\" \"pnpm dev:client\"",
+    "dev:api": "cd api && bun run dev",
+    "dev:client": "cd client && pnpm dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.10.0",
+      "onFail": "download"
+    }
+  }
+}
