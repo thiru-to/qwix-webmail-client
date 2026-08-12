@@ -16,15 +16,15 @@ export function Dialog({ open, onClose, title, eyebrow, children, className, foo
   if (!open) return null
 
   return (
-    <div className="compose-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className="ui-dialog-backdrop" role="presentation" onMouseDown={onClose}>
       <section
-        className={cn('compose-dialog', className)}
+        className={cn('ui-dialog', className)}
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="compose-header">
+        <div className="ui-dialog-header">
           <div>
             {eyebrow ? <div className="eyebrow">{eyebrow}</div> : null}
             <h2 id="dialog-title">{title}</h2>
