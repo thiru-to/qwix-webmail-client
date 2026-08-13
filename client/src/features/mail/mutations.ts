@@ -76,14 +76,14 @@ export const useMarkSeen = () => useFlagMutation(SEEN, 1)
 export function useMoveMessage() {
   const queryClient = useQueryClient()
   const folder = useMailUiStore((state) => state.folder)
-  const setSelectedUid = useMailUiStore((state) => state.setSelectedUid)
   const setInboxDetailOpen = useMailUiStore((state) => state.setInboxDetailOpen)
 
   return useMutation({
     mutationFn: ({ uid, to }: { uid: number; to: string }) => moveMessages({ folder, uids: [uid], to }),
     onSuccess: async () => {
-      // The message is no longer in this folder, so nothing should stay selected.
-      setSelectedUid(null)
+      // The selection is deliberately left alone: the workspace notices the message has gone and
+      // moves the reader to its neighbour, which keeps a stream of deletes moving down the list.
+      // Clearing it here would blink the empty pane between every one.
       setInboxDetailOpen(false)
       await queryClient.invalidateQueries({ queryKey: ['mail'] })
     },

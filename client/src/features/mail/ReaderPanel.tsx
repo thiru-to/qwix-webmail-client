@@ -45,7 +45,7 @@ export function ReaderPanel({ onBack }: ReaderPanelProps) {
     return (
       <section className="reader-panel empty-reader">
         <Info size={ICON.xl} strokeWidth={ICON_STROKE} />
-        <p>Select a message to read it.</p>
+        <p>Nothing to read in this folder.</p>
       </section>
     )
   }
@@ -74,6 +74,7 @@ export function ReaderPanel({ onBack }: ReaderPanelProps) {
 function MessageDetail({ message, onBack }: { message: Message; onBack?: () => void }) {
   const openCompose = useMailUiStore((state) => state.openCompose)
   const settings = useSettings()
+  const selectionAuto = useMailUiStore((state) => state.selectionAuto)
   const toggleFlagged = useToggleFlagged()
   const markSeen = useMarkSeen()
   const allowRemote = remoteAllowed(settings.remoteSenders, message.from?.address)
@@ -82,9 +83,12 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
   const uid = message.uid
   const markSeenMutate = markSeen.mutate
 
+  // Reading marks read, but only when the reader was opened deliberately. The pane fills itself
+  // on sign-in and after a delete, and neither is a claim to have read anything — without this,
+  // signing in would quietly clear the unread flag on whatever happened to be newest.
   useEffect(() => {
-    if (!seen) markSeenMutate({ uid, set: true })
-  }, [markSeenMutate, seen, uid])
+    if (!seen && !selectionAuto) markSeenMutate({ uid, set: true })
+  }, [markSeenMutate, seen, selectionAuto, uid])
 
   const sender = addressLabel(message.from)
   const attachments = message.attachments.filter((attachment) => !attachment.inline)

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { PanelLeft, PanelRight } from 'lucide-react'
 import { AppShell } from '../../components/shell/AppShell'
@@ -26,9 +27,33 @@ export function MailWorkspace() {
   const setSelectedUid = useMailUiStore((state) => state.setSelectedUid)
   const showInboxDetail = layoutMode === 'inbox' && (inboxDetailOpen || composeOpen)
 
+  const autoSelectUid = useMailUiStore((state) => state.autoSelectUid)
+
   const { data: pages } = useInfiniteQuery(mailQueries.messages(folder))
-  const listed = pages?.pages.flatMap((page) => page.messages) ?? []
+  // Memoised because two effects depend on it; rebuilt each render it would re-run them both.
+  const listed = useMemo(() => pages?.pages.flatMap((page) => page.messages) ?? [], [pages])
   const current = listed.find((message) => message.uid === selectedUid)
+
+  // Where the reader was pointing, so that deleting hands it whatever moves into that slot rather
+  // than dropping back to an empty pane. Reset per folder — a row number means nothing across them.
+  const readerIndex = useRef(0)
+  useEffect(() => {
+    readerIndex.current = 0
+  }, [folder])
+  useEffect(() => {
+    const index = listed.findIndex((message) => message.uid === selectedUid)
+    if (index >= 0) readerIndex.current = index
+  }, [listed, selectedUid])
+
+  // Nothing selected, or the selection has been moved out of this folder: show its neighbour. Also
+  // covers the first render after signing in, where the reader would otherwise open on a shrug.
+  // Only in split — the inbox layout puts the reader behind a tap, so opening one is the user's call.
+  useEffect(() => {
+    if (layoutMode !== 'split' || !listed.length) return
+    if (selectedUid !== null && listed.some((message) => message.uid === selectedUid)) return
+    const next = listed[Math.min(readerIndex.current, listed.length - 1)]
+    if (next && next.uid !== selectedUid) autoSelectUid(next.uid)
+  }, [autoSelectUid, layoutMode, listed, selectedUid])
   const { archive, spam, trash } = useRoleFolders()
   const move = useMoveMessage()
   const toggleFlagged = useToggleFlagged()
