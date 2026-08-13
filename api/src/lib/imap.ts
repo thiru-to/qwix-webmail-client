@@ -3,6 +3,9 @@ import { endpoints, provider, type Account } from './account'
 
 const pool = new Map<string, Promise<ImapFlow>>()
 const sentFolders = new Map<string, string>()
+const lastUsed = new Map<string, number>()
+
+const IDLE_MS = 10 * 60 * 1000
 
 const connect = async (account: Account) => {
   const { host, port } = endpoints(account.config).imap
@@ -22,6 +25,7 @@ const connect = async (account: Account) => {
 
 // Hold the connection, but drop a dead one — IMAP sockets are idle-timed out server side.
 export const imap = async (account: Account, retry = true): Promise<ImapFlow> => {
+  lastUsed.set(account.key, Date.now())
   let pending = pool.get(account.key)
   if (!pending) {
     pending = connect(account).catch((err) => {
@@ -48,6 +52,8 @@ export const withMailbox = async <T>(account: Account, path: string, fn: (client
     return await fn(client)
   } finally {
     lock.release()
+    // Stamped again on the way out so a long fetch cannot be swept while it is still running.
+    lastUsed.set(account.key, Date.now())
   }
 }
 
@@ -65,7 +71,16 @@ export const sentFolder = async (account: Account) => {
 
 export const release = (key: string) => {
   sentFolders.delete(key)
+  lastUsed.delete(key)
   const pending = pool.get(key)
   pool.delete(key)
   pending?.then((client) => client.close()).catch(() => {})
 }
+
+// imapflow restarts IDLE after every command, so a pooled connection never times out on its own —
+// an open tab nobody is reading would hold it for days, and hosts cap connections per account.
+// Dropping it is invisible: the next request finds an empty pool and reconnects.
+setInterval(() => {
+  const cutoff = Date.now() - IDLE_MS
+  for (const [key, at] of lastUsed) if (at < cutoff) release(key)
+}, 60 * 1000)

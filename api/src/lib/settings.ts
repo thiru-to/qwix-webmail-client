@@ -1,10 +1,11 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { settings } from '../db/schema'
-import type { Density, Settings, SettingsInput, Theme } from '../types'
+import type { Density, HtmlMode, Settings, SettingsInput, Theme } from '../types'
 
 const THEMES: Theme[] = ['dark', 'light']
 const DENSITIES: Density[] = ['compact', 'cozy', 'comfortable']
+const HTML_MODES: HtmlMode[] = ['always', 'allowed', 'never']
 
 const DEFAULTS: Settings = {
   theme: 'dark',
@@ -12,6 +13,10 @@ const DEFAULTS: Settings = {
   threading: false,
   shortcutsEnabled: true,
   remoteSenders: [],
+  // Rendering HTML is what every account did before this setting existed; defaulting to anything
+  // stricter would silently change how everyone's existing mail looks.
+  htmlMode: 'always',
+  htmlSenders: [],
   shortcutOverrides: {},
 }
 
@@ -45,6 +50,8 @@ export function readSettings(userId: number): Settings {
     threading: row.threading,
     shortcutsEnabled: row.shortcutsEnabled,
     remoteSenders: row.remoteSenders ?? [],
+    htmlMode: HTML_MODES.includes(row.htmlMode as HtmlMode) ? (row.htmlMode as HtmlMode) : DEFAULTS.htmlMode,
+    htmlSenders: row.htmlSenders ?? [],
     shortcutOverrides: row.shortcutOverrides ?? {},
   }
 }
@@ -58,6 +65,8 @@ export function writeSettings(userId: number, input: SettingsInput): Settings {
     shortcutsEnabled:
       typeof input.shortcutsEnabled === 'boolean' ? input.shortcutsEnabled : current.shortcutsEnabled,
     remoteSenders: input.remoteSenders === undefined ? current.remoteSenders : senderList(input.remoteSenders),
+    htmlMode: input.htmlMode && HTML_MODES.includes(input.htmlMode) ? input.htmlMode : current.htmlMode,
+    htmlSenders: input.htmlSenders === undefined ? current.htmlSenders : senderList(input.htmlSenders),
     shortcutOverrides:
       input.shortcutOverrides === undefined ? current.shortcutOverrides : overrides(input.shortcutOverrides),
   }
@@ -69,8 +78,8 @@ export function writeSettings(userId: number, input: SettingsInput): Settings {
   return next
 }
 
-/** Whether this sender is on the remote-content allow list, by address or by domain. */
-export const remoteAllowed = (allowed: string[], address: string | null | undefined) => {
+/** Whether this sender is on an allow list — remote content or HTML — by address or by domain. */
+export const senderAllowed = (allowed: string[], address: string | null | undefined) => {
   if (!address) return false
   const value = address.trim().toLowerCase()
   const domain = value.split('@')[1] ?? ''

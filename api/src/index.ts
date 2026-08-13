@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
-import { authenticate, clearSessions, type Vars } from './lib/auth'
+import { reportUpstreamFailure } from './lib/alerts'
+import { authenticate, clearSessions, reap, type Vars } from './lib/auth'
 import { seed } from './lib/discovery'
 import auth from './routes/auth'
 import calendar from './routes/calendar'
@@ -15,6 +16,8 @@ import type { ApiError } from './types'
 
 seed()
 clearSessions()
+// Logging in reaps too, but on a quiet server that could be days apart.
+setInterval(reap, 5 * 60 * 1000)
 
 const app = new Hono<Vars>()
 
@@ -50,9 +53,21 @@ app.route('/filters', filters)
 app.get('/', (c) => c.json({ routes: ['/auth', '/mail', '/calendar', '/contacts', '/labels', '/settings', '/identities', '/filters'] }))
 
 app.onError((err, c) => {
-  if (err instanceof HTTPException) return c.json<ApiError>({ error: err.message }, err.status)
+  if (err instanceof HTTPException) {
+    // 4xx is the API telling the caller it got the request wrong; only a 5xx is ours to answer for.
+    if (err.status >= 500) reportUpstreamFailure(c, err.status, err.message)
+    return c.json<ApiError>({ error: err.message }, err.status)
+  }
   console.error(err)
-  return c.json<ApiError>({ error: 'Upstream request failed', detail: err.message.split('\n')[0] }, 502)
+  const detail = err.message.split('\n')[0]
+  reportUpstreamFailure(c, 502, detail)
+  return c.json<ApiError>({ error: 'Upstream request failed', detail }, 502)
 })
 
-export default app
+export default {
+  port: Number(process.env.PORT ?? 3000),
+  // Loopback by default: nginx terminates TLS and is the only thing that should
+  // reach this process. Set HOST=0.0.0.0 only to expose it deliberately.
+  hostname: process.env.HOST ?? '127.0.0.1',
+  fetch: app.fetch,
+}

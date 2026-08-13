@@ -1,3 +1,4 @@
+import { HTTPException } from 'hono/http-exception'
 import { DAVClient, type DAVAddressBook, type DAVCalendar } from 'tsdav'
 import { endpoints, provider, type Account } from './account'
 
@@ -12,7 +13,20 @@ export const connect = async (account: Account, accountType: AccountType) => {
     authMethod: 'Basic',
     defaultAccountType: accountType,
   })
-  await client.login()
+  try {
+    await client.login()
+  } catch (err) {
+    // A working IMAP login says nothing about DAV: the two are separate services and a host may
+    // authenticate one and refuse the other. MXroute only accepts DAV for mailboxes whose domain
+    // MXes to MXroute, so an address hosted there but delivered elsewhere fails exactly here.
+    // Not a 401 — the session itself is fine, and the client signs the user out on one of those.
+    if (err instanceof Error && /invalid credentials|401/i.test(err.message)) {
+      throw new HTTPException(502, {
+        message: `${endpoints(account.config).dav} rejected this account. Calendar and contacts are a separate login from mail — check the account exists there.`,
+      })
+    }
+    throw err
+  }
   return client
 }
 

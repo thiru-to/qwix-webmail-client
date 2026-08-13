@@ -507,6 +507,21 @@
   .reader-date { font-size: 12px; }
 }
 
+.html-notice {
+  align-items: center;
+  background: var(--surface-control);
+  border: 1px solid var(--line-bright);
+  border-radius: 14px;
+  color: var(--muted-strong);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+}
+.html-notice svg { flex: none; }
+.html-notice span { margin-right: auto; }
 .message-frame {
   background: #ffffff;
   border: 0;

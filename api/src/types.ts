@@ -201,6 +201,9 @@ export type Theme = 'dark' | 'light'
 
 export type Density = 'compact' | 'cozy' | 'comfortable'
 
+/** When a message's HTML part may be rendered at all, as opposed to its plain-text alternative. */
+export type HtmlMode = 'always' | 'allowed' | 'never'
+
 export type Settings = {
   theme: Theme
   density: Density
@@ -209,6 +212,9 @@ export type Settings = {
   shortcutsEnabled: boolean
   /** Bare domains or full addresses whose remote images may load. */
   remoteSenders: string[]
+  htmlMode: HtmlMode
+  /** Bare domains or full addresses whose HTML renders when htmlMode is 'allowed'. */
+  htmlSenders: string[]
   shortcutOverrides: Record<string, string>
 }
 

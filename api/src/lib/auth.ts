@@ -14,6 +14,7 @@ export const COOKIE = 'qwix_session'
 const TTL_MS = 7 * 24 * 60 * 60 * 1000
 const WINDOW_MS = 15 * 60 * 1000
 const MAX_FAILURES = 5
+const SEEN_MS = 60 * 1000
 
 export type Vars = { Variables: { account: Account } }
 
@@ -51,8 +52,26 @@ export const upsertUser = (email: string, domain: string): User => {
   return db.select().from(users).where(eq(users.email, email)).get()!
 }
 
+// Everything a session holds outside its row: the password, and the connections opened with it.
+const discard = (id: string) => {
+  releaseImap(id)
+  releaseDav(id)
+  releaseSmtp(id)
+  forget(id)
+}
+
+// An expired session is otherwise only noticed when someone uses it, so a browser that never comes
+// back leaves its password in memory and its IMAP connection open until the process dies.
+export const reap = () => {
+  const now = new Date()
+  for (const { id } of db.select({ id: sessions.id }).from(sessions).where(lt(sessions.expiresAt, now)).all()) {
+    discard(id)
+  }
+  db.delete(sessions).where(lt(sessions.expiresAt, now)).run()
+}
+
 export const startSession = async (c: Context, user: User, password: string, config: ServerConfig) => {
-  db.delete(sessions).where(lt(sessions.expiresAt, new Date())).run()
+  reap()
 
   const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url')
   const id = await digest(token)
@@ -75,10 +94,7 @@ export const startSession = async (c: Context, user: User, password: string, con
 
 export const endSession = (c: Context, id: string) => {
   db.delete(sessions).where(eq(sessions.id, id)).run()
-  releaseImap(id)
-  releaseDav(id)
-  releaseSmtp(id)
-  forget(id)
+  discard(id)
   deleteCookie(c, COOKIE, { path: '/' })
 }
 
@@ -100,7 +116,11 @@ export const authenticate: MiddlewareHandler<Vars> = async (c, next) => {
     throw new HTTPException(401, { message: 'Session expired' })
   }
 
-  db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, id)).run()
+  // Opening one screen fires a dozen requests, and SQLite takes them one write at a time. This is
+  // only here to spot abandoned sessions, so minute resolution is plenty.
+  if (Date.now() - session.lastSeenAt.getTime() > SEEN_MS) {
+    db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, id)).run()
+  }
   c.set('account', account)
   await next()
 }

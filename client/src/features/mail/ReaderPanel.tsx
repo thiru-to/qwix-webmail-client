@@ -1,9 +1,10 @@
 import type { Message } from '@api/types'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Info, Star } from 'lucide-react'
+import { FileText, Info, ShieldAlert, Star } from 'lucide-react'
 import { attachmentUrl } from '../../api/mail'
 import { Avatar } from '../../components/ui/avatar'
+import { Button } from '../../components/ui/button'
 import { IconButton } from '../../components/ui/icon-button'
 import { QueryState } from '../../components/ui/query-state'
 import { SkeletonRow } from '../../components/ui/skeleton'
@@ -20,7 +21,8 @@ import {
 } from '../../lib/format'
 import { ReaderToolbar } from './ReaderToolbar'
 import { useSettings } from '../settings/queries'
-import { remoteAllowed } from '../../lib/remote'
+import { useUpdateSettings } from '../settings/mutations'
+import { domainOf, htmlAllowed, remoteAllowed } from '../../lib/remote'
 import { useMarkSeen, useToggleFlagged } from './mutations'
 import { mailQueries } from './queries'
 import { ICON, ICON_STROKE } from '../../lib/icons'
@@ -74,21 +76,29 @@ export function ReaderPanel({ onBack }: ReaderPanelProps) {
 function MessageDetail({ message, onBack }: { message: Message; onBack?: () => void }) {
   const openCompose = useMailUiStore((state) => state.openCompose)
   const settings = useSettings()
-  const selectionAuto = useMailUiStore((state) => state.selectionAuto)
   const toggleFlagged = useToggleFlagged()
   const markSeen = useMarkSeen()
   const allowRemote = remoteAllowed(settings.remoteSenders, message.from?.address)
+  const updateSettings = useUpdateSettings()
+  // Held against the uid rather than as a flag to reset: moving to another message stops matching,
+  // so trusting one sender's HTML once never quietly becomes trusting it forever.
+  const [htmlOnceFor, setHtmlOnceFor] = useState<number | null>(null)
+  const showHtmlOnce = htmlOnceFor === message.uid
+
+  const senderDomain = domainOf(message.from?.address)
+  const htmlPermitted = htmlAllowed(settings.htmlMode, settings.htmlSenders, message.from?.address)
+  const renderHtml = Boolean(message.html) && (htmlPermitted || showHtmlOnce)
+  // Plenty of HTML mail carries no text/plain part at all, so refusing the HTML cannot be the end
+  // of it — otherwise the message reads as empty and the setting looks like a bug.
+  const withheld = Boolean(message.html) && !renderHtml
 
   const seen = message.seen
   const uid = message.uid
   const markSeenMutate = markSeen.mutate
 
-  // Reading marks read, but only when the reader was opened deliberately. The pane fills itself
-  // on sign-in and after a delete, and neither is a claim to have read anything — without this,
-  // signing in would quietly clear the unread flag on whatever happened to be newest.
   useEffect(() => {
-    if (!seen && !selectionAuto) markSeenMutate({ uid, set: true })
-  }, [markSeenMutate, seen, selectionAuto, uid])
+    if (!seen) markSeenMutate({ uid, set: true })
+  }, [markSeenMutate, seen, uid])
 
   const sender = addressLabel(message.from)
   const attachments = message.attachments.filter((attachment) => !attachment.inline)
@@ -168,7 +178,33 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
         </div>
       ) : null}
 
-      {message.html ? (
+      {withheld ? (
+        <div className="html-notice" role="status">
+          <ShieldAlert size={ICON.md} strokeWidth={ICON_STROKE} />
+          <span>
+            {settings.htmlMode === 'never'
+              ? 'Formatted content is turned off.'
+              : `Formatted content is off for ${senderDomain ?? 'this sender'}.`}
+          </span>
+          <Button size="sm" variant="outline" onClick={() => setHtmlOnceFor(message.uid)}>
+            Show once
+          </Button>
+          {settings.htmlMode === 'allowed' && senderDomain ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={updateSettings.isPending}
+              onClick={() =>
+                updateSettings.mutate({ htmlSenders: [...settings.htmlSenders, senderDomain] })
+              }
+            >
+              Always allow {senderDomain}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {renderHtml ? (
         <iframe
           className="message-frame"
           sandbox=""
@@ -177,7 +213,9 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
         />
       ) : (
         <div className="message-body">
-          <pre className="message-text">{message.text ?? 'This message has no readable body.'}</pre>
+          <pre className="message-text">
+            {message.text ?? (withheld ? 'This message is formatted content only.' : 'This message has no readable body.')}
+          </pre>
         </div>
       )}
 

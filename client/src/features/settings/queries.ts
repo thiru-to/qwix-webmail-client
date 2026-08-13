@@ -12,6 +12,8 @@ export const DEFAULT_SETTINGS: Settings = {
   threading: false,
   shortcutsEnabled: true,
   remoteSenders: [],
+  htmlMode: 'always',
+  htmlSenders: [],
   shortcutOverrides: {},
 }
 

@@ -96,6 +96,9 @@ export const settings = sqliteTable('settings', {
   shortcutsEnabled: integer('shortcuts_enabled', { mode: 'boolean' }).notNull().default(true),
   // Senders whose remote images are allowed to load: bare domains or full addresses.
   remoteSenders: text('remote_senders', { mode: 'json' }).notNull().$type<string[]>().default([]),
+  // 'always' keeps what every existing user already sees; the allow list only matters on 'allowed'.
+  htmlMode: text('html_mode').notNull().default('always'),
+  htmlSenders: text('html_senders', { mode: 'json' }).notNull().$type<string[]>().default([]),
   shortcutOverrides: text('shortcut_overrides', { mode: 'json' })
     .notNull()
     .$type<Record<string, string>>()
@@ -153,6 +156,22 @@ export const filterState = sqliteTable('filter_state', {
   folder: text().notNull(),
   lastUid: integer('last_uid').notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.userId, t.folder] })])
+
+// Anything the API could not complete because something upstream refused it. Kept so a report of
+// "calendar is broken" can be answered without asking the user to reproduce it.
+export const upstreamErrors = sqliteTable('upstream_errors', {
+  id: integer().primaryKey({ autoIncrement: true }),
+  at: integer({ mode: 'timestamp' }).notNull().$defaultFn(now),
+  // Route plus message, minus anything varying: repeats of one fault collapse onto one signature.
+  signature: text().notNull(),
+  method: text().notNull(),
+  path: text().notNull(),
+  status: integer().notNull(),
+  email: text(),
+  host: text(),
+  message: text().notNull(),
+  notifiedAt: integer('notified_at', { mode: 'timestamp' }),
+}, (t) => [index('upstream_errors_sig_idx').on(t.signature, t.at), index('upstream_errors_at_idx').on(t.at)])
 
 export type ServerConfig = typeof serverConfigs.$inferSelect
 export type User = typeof users.$inferSelect

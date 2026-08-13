@@ -27,8 +27,6 @@ export function MailWorkspace() {
   const setSelectedUid = useMailUiStore((state) => state.setSelectedUid)
   const showInboxDetail = layoutMode === 'inbox' && (inboxDetailOpen || composeOpen)
 
-  const autoSelectUid = useMailUiStore((state) => state.autoSelectUid)
-
   const { data: pages } = useInfiniteQuery(mailQueries.messages(folder))
   // Memoised because two effects depend on it; rebuilt each render it would re-run them both.
   const listed = useMemo(() => pages?.pages.flatMap((page) => page.messages) ?? [], [pages])
@@ -52,8 +50,8 @@ export function MailWorkspace() {
     if (layoutMode !== 'split' || !listed.length) return
     if (selectedUid !== null && listed.some((message) => message.uid === selectedUid)) return
     const next = listed[Math.min(readerIndex.current, listed.length - 1)]
-    if (next && next.uid !== selectedUid) autoSelectUid(next.uid)
-  }, [autoSelectUid, layoutMode, listed, selectedUid])
+    if (next && next.uid !== selectedUid) setSelectedUid(next.uid)
+  }, [layoutMode, listed, selectedUid, setSelectedUid])
   const { archive, spam, trash } = useRoleFolders()
   const move = useMoveMessage()
   const toggleFlagged = useToggleFlagged()

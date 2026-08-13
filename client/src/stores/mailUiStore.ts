@@ -8,8 +8,6 @@ export type MailFilter = 'unread' | 'attachments' | 'flagged'
 type MailUiState = {
   folder: string
   selectedUid: number | null
-  /** The app picked the selection, not the user — shown, but not marked read. */
-  selectionAuto: boolean
   layoutMode: LayoutMode
   inboxDetailOpen: boolean
   search: string
@@ -21,7 +19,6 @@ type MailUiState = {
   composeDraft: Partial<SendInput>
   setFolder: (folder: string) => void
   setSelectedUid: (uid: number | null) => void
-  autoSelectUid: (uid: number) => void
   setLayoutMode: (mode: LayoutMode) => void
   setInboxDetailOpen: (open: boolean) => void
   setSearch: (search: string) => void
@@ -36,7 +33,6 @@ type MailUiState = {
 export const useMailUiStore = create<MailUiState>()((set) => ({
   folder: 'INBOX',
   selectedUid: null,
-  selectionAuto: false,
   layoutMode: 'split',
   inboxDetailOpen: false,
   search: '',
@@ -46,9 +42,8 @@ export const useMailUiStore = create<MailUiState>()((set) => ({
   composeOpen: false,
   composeDraft: {},
   // A uid only identifies a message within its own folder.
-  setFolder: (folder) => set({ folder, selectedUid: null, selectionAuto: false, inboxDetailOpen: false }),
-  setSelectedUid: (selectedUid) => set({ selectedUid, selectionAuto: false }),
-  autoSelectUid: (selectedUid) => set({ selectedUid, selectionAuto: true }),
+  setFolder: (folder) => set({ folder, selectedUid: null, inboxDetailOpen: false }),
+  setSelectedUid: (selectedUid) => set({ selectedUid }),
   setLayoutMode: (layoutMode) => set({ layoutMode }),
   setInboxDetailOpen: (inboxDetailOpen) => set({ inboxDetailOpen }),
   setSearch: (search) => set({ search }),
