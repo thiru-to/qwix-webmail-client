@@ -1,7 +1,7 @@
 import { Search, X } from 'lucide-react'
 import { Input } from './input'
 import { cn } from '../../lib/utils'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 type SearchFieldProps = {
   value: string
@@ -20,7 +20,7 @@ export function SearchField({
 }: SearchFieldProps) {
   return (
     <div className={cn('search-box', className)}>
-      <Search size={18} strokeWidth={ICON_STROKE} />
+      <Search size={ICON.lg} strokeWidth={ICON_STROKE} />
       <Input
         aria-label={label}
         value={value}
@@ -29,7 +29,7 @@ export function SearchField({
       />
       {value ? (
         <button className="clear-search" type="button" onClick={() => onChange('')} aria-label="Clear search">
-          <X size={15} strokeWidth={ICON_STROKE} />
+          <X size={ICON.md} strokeWidth={ICON_STROKE} />
         </button>
       ) : null}
     </div>

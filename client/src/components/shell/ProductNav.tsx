@@ -1,6 +1,6 @@
 import { useShellStore } from '../../stores/shellStore'
 import { productViews } from './productMeta'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 export function ProductNav() {
   const productView = useShellStore((state) => state.productView)
@@ -17,7 +17,7 @@ export function ProductNav() {
           type="button"
           onClick={() => setProductView(id)}
         >
-          <Icon size={16} strokeWidth={ICON_STROKE} />
+          <Icon size={ICON.md} strokeWidth={ICON_STROKE} />
           <span>{label}</span>
         </button>
       ))}

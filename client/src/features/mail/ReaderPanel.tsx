@@ -23,7 +23,7 @@ import { useSettings } from '../settings/queries'
 import { remoteAllowed } from '../../lib/remote'
 import { useMarkSeen, useToggleFlagged } from './mutations'
 import { mailQueries } from './queries'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 // Message HTML is attacker-controlled: the sandbox stops scripts, and the CSP stops remote
 // loads, so tracking pixels never fire. Inline images are dropped along with them.
@@ -44,7 +44,7 @@ export function ReaderPanel({ onBack }: ReaderPanelProps) {
   if (selectedUid === null) {
     return (
       <section className="reader-panel empty-reader">
-        <Info size={24} strokeWidth={ICON_STROKE} />
+        <Info size={ICON.xl} strokeWidth={ICON_STROKE} />
         <p>Select a message to read it.</p>
       </section>
     )
@@ -131,7 +131,7 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
           pressed={message.flagged}
           onClick={() => toggleFlagged.mutate({ uid: message.uid, set: !message.flagged })}
         >
-          <Star size={17} strokeWidth={ICON_STROKE} fill={message.flagged ? 'currentColor' : 'none'} />
+          <Star size={ICON.lg} strokeWidth={ICON_STROKE} fill={message.flagged ? 'currentColor' : 'none'} />
         </IconButton>
       </div>
 
@@ -189,7 +189,7 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
                 download={attachment.filename}
               >
                 <span className="file-icon">
-                  <FileText size={15} strokeWidth={ICON_STROKE} />
+                  <FileText size={ICON.md} strokeWidth={ICON_STROKE} />
                 </span>
                 {attachment.filename ?? attachment.mimeType}
                 {attachment.size ? <em>{formatBytes(attachment.size)}</em> : null}

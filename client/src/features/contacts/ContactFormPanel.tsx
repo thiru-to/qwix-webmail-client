@@ -9,6 +9,7 @@ import { Spinner } from '../../components/ui/spinner'
 import { TextArea } from '../../components/ui/textarea'
 import { useContactsUiStore } from '../../stores/contactsUiStore'
 import { useCreateContact, useUpdateContact } from './mutations'
+import { ICON } from '../../lib/icons'
 
 type ValidationErrors = Partial<Record<'name' | 'emails', string>>
 
@@ -71,7 +72,7 @@ export function ContactFormPanel({ contact }: { contact?: ContactItem }) {
       footer={
         <div className="contact-form-actions">
           <Button type="submit" form="contact-form" disabled={isPending}>
-            {isPending ? <Spinner size={14} /> : null}
+            {isPending ? <Spinner size={ICON.md} /> : null}
             Save
           </Button>
           <Button type="button" variant="ghost" onClick={closePanel} disabled={isPending}>

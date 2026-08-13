@@ -2,7 +2,7 @@ import type { Density, Theme } from '@api/types'
 import { Moon, Sun } from 'lucide-react'
 import { useSettings } from '../queries'
 import { useUpdateSettings } from '../mutations'
-import { ICON_STROKE } from '../../../lib/icons'
+import { ICON, ICON_STROKE } from '../../../lib/icons'
 
 const THEMES: { id: Theme; label: string; icon: typeof Sun }[] = [
   { id: 'dark', label: 'Dark', icon: Moon },
@@ -31,7 +31,7 @@ export function AppearanceSettings() {
               className={settings.theme === id ? 'settings-choice active' : 'settings-choice'}
               onClick={() => update.mutate({ theme: id })}
             >
-              <Icon size={16} strokeWidth={ICON_STROKE} />
+              <Icon size={ICON.md} strokeWidth={ICON_STROKE} />
               {label}
             </button>
           ))}

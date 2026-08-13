@@ -3,6 +3,7 @@ import { ApiError } from '../../api/client'
 import { Button } from './button'
 import { SkeletonRow } from './skeleton'
 import { Spinner } from './spinner'
+import { ICON } from '../../lib/icons'
 
 type QueryStateProps = {
   isPending: boolean
@@ -55,7 +56,7 @@ export function QueryState({
           <p>{error?.message ?? 'Something went wrong.'}</p>
         )}
         <Button type="button" onClick={onRetry} disabled={isFetching}>
-          {isFetching ? <Spinner size={14} /> : null}
+          {isFetching ? <Spinner size={ICON.md} /> : null}
           Retry
         </Button>
       </div>

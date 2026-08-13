@@ -11,6 +11,7 @@ import { useShellStore } from './stores/shellStore'
 import { useSettings } from './features/settings/queries'
 import { SettingsWorkspace } from './features/settings/SettingsWorkspace'
 import { cn } from './lib/utils'
+import { ICON } from './lib/icons'
 import './App.css'
 import './components/ui/ui.css'
 import './components/shell/shell.css'
@@ -25,7 +26,7 @@ function App() {
   if (isPending) {
     return (
       <div className={cn('mail-app auth-screen', theme === 'light' && 'theme-light')}>
-        <Spinner size={22} />
+        <Spinner size={ICON.xl} />
       </div>
     )
   }
@@ -38,7 +39,7 @@ function App() {
         <div className="auth-card query-error" role="alert">
           <p>{error?.message ?? 'Could not load your session.'}</p>
           <Button type="button" onClick={() => void refetch()} disabled={isFetching}>
-            {isFetching ? <Spinner size={14} /> : null}
+            {isFetching ? <Spinner size={ICON.xl} /> : null}
             Retry
           </Button>
         </div>

@@ -12,7 +12,7 @@ import { MessageList } from './MessageList'
 import { ReaderPanel } from './ReaderPanel'
 import { ComposePanel } from './ComposePanel'
 import './mail.css'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 export function MailWorkspace() {
   const layoutMode = useMailUiStore((state) => state.layoutMode)
@@ -69,7 +69,7 @@ export function MailWorkspace() {
                 onClick={() => setLayoutMode('split')}
                 title="Split view"
               >
-                <PanelRight size={14} strokeWidth={ICON_STROKE} /> <span>Split</span>
+                <PanelRight size={ICON.sm} strokeWidth={ICON_STROKE} /> <span>Split</span>
               </button>
               <button
                 className={layoutMode === 'inbox' ? 'layout-option active' : 'layout-option'}
@@ -80,7 +80,7 @@ export function MailWorkspace() {
                   setInboxDetailOpen(false)
                 }}
               >
-                <PanelLeft size={14} strokeWidth={ICON_STROKE} /> <span>Inbox</span>
+                <PanelLeft size={ICON.sm} strokeWidth={ICON_STROKE} /> <span>Inbox</span>
               </button>
             </div>
           </div>

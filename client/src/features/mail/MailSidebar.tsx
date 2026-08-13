@@ -19,7 +19,7 @@ import { useShellStore } from '../../stores/shellStore'
 import { SkeletonRow } from '../../components/ui/skeleton'
 import { QueryState } from '../../components/ui/query-state'
 import { LabelSection } from '../labels/LabelSection'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 // Ordered as a mail client presents them; anything without a special use drops into "Other".
 const SPECIAL_USE: { use: string; icon: LucideIcon }[] = [
@@ -73,7 +73,7 @@ function FolderList({ folders, label }: { folders: MailFolder[]; label: string }
             type="button"
             onClick={() => setFolder(folder.path)}
           >
-            <Icon size={18} strokeWidth={ICON_STROKE} />
+            <Icon size={ICON.lg} strokeWidth={ICON_STROKE} />
             <span>{folder.name}</span>
             <span className="folder-count">{folder.unseen || folder.total || ''}</span>
           </button>

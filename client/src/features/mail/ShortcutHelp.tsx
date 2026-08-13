@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 import { useShellStore } from '../../stores/shellStore'
 import { shortcutKeys } from '../../lib/shortcuts'
 import { useSettings } from '../settings/queries'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 export function ShortcutHelp() {
   const open = useShellStore((state) => state.shortcutsHelpOpen)
@@ -16,7 +16,7 @@ export function ShortcutHelp() {
         <div className="shortcut-help-header">
           <h2>Keyboard shortcuts</h2>
           <button type="button" className="close-dialog" aria-label="Close shortcuts" onClick={() => setOpen(false)}>
-            <X size={18} strokeWidth={ICON_STROKE} />
+            <X size={ICON.lg} strokeWidth={ICON_STROKE} />
           </button>
         </div>
         <ul>

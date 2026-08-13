@@ -14,7 +14,7 @@ import { Spinner } from '../../components/ui/spinner'
 import { addressLabel } from '../../lib/format'
 import { buildThreads } from '../../lib/threading'
 import { useSettings } from '../settings/queries'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 const FILTERS: { id: MailFilter; label: string; matches: (message: MessageSummary) => boolean }[] = [
   { id: 'unread', label: 'Unread only', matches: (message) => !message.seen },
@@ -102,7 +102,7 @@ export function MessageList() {
         </div>
         <div className="heading-actions">
           <Button size="sm" onClick={() => openCompose()}>
-            <PenLine size={16} strokeWidth={ICON_STROKE} /> Compose
+            <PenLine size={ICON.md} strokeWidth={ICON_STROKE} /> Compose
           </Button>
           <Button
             size="sm"
@@ -111,7 +111,7 @@ export function MessageList() {
             aria-pressed={filterOpen || filters.length > 0}
             onClick={toggleFilterOpen}
           >
-            <Filter size={16} strokeWidth={ICON_STROKE} /> Filter
+            <Filter size={ICON.md} strokeWidth={ICON_STROKE} /> Filter
           </Button>
         </div>
       </div>
@@ -177,7 +177,7 @@ export function MessageList() {
               onClick={() => void fetchNextPage()}
               disabled={isFetchingNextPage}
             >
-              {isFetchingNextPage ? <Spinner size={14} /> : null}
+              {isFetchingNextPage ? <Spinner size={ICON.md} /> : null}
               Load more
             </Button>
           ) : null}

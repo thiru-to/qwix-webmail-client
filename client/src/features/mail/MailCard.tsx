@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui/badge'
 import { IconButton } from '../../components/ui/icon-button'
 import { LabelChips } from '../labels/LabelChips'
 import { addressLabel, avatarTone, formatListDate, initialsOf } from '../../lib/format'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 type MailCardProps = {
   message: MessageSummary
@@ -52,12 +52,12 @@ export function MailCard({
         <div className="card-meta">
           {message.hasAttachments ? (
             <span className="meta-pill">
-              <Paperclip size={13} strokeWidth={ICON_STROKE} />
+              <Paperclip size={ICON.sm} strokeWidth={ICON_STROKE} />
             </span>
           ) : null}
           {message.answered ? (
             <span className="meta-pill">
-              <CornerUpLeft size={13} strokeWidth={ICON_STROKE} />
+              <CornerUpLeft size={ICON.sm} strokeWidth={ICON_STROKE} />
             </span>
           ) : null}
           {message.draft ? <Badge>Draft</Badge> : null}
@@ -74,7 +74,7 @@ export function MailCard({
             onToggleFlag()
           }}
         >
-          <Star size={17} strokeWidth={ICON_STROKE} fill={message.flagged ? 'currentColor' : 'none'} />
+          <Star size={ICON.lg} strokeWidth={ICON_STROKE} fill={message.flagged ? 'currentColor' : 'none'} />
         </IconButton>
         {onDelete ? (
           <IconButton
@@ -87,7 +87,7 @@ export function MailCard({
               onDelete()
             }}
           >
-            <Trash2 size={17} strokeWidth={ICON_STROKE} />
+            <Trash2 size={ICON.lg} strokeWidth={ICON_STROKE} />
           </IconButton>
         ) : null}
       </div>

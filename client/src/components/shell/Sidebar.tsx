@@ -4,7 +4,7 @@ import { Button } from '../ui/button'
 import { ProductNav } from './ProductNav'
 import { getProductMeta } from './productMeta'
 import { useShellStore } from '../../stores/shellStore'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 type SidebarProps = {
   children: ReactNode
@@ -22,7 +22,7 @@ export function Sidebar({ children, dock, primaryAction }: SidebarProps) {
     <aside className="sidebar">
       <div className="brand-row">
         <div className="brand-mark" aria-hidden="true">
-          <ActiveIcon size={18} strokeWidth={ICON_STROKE} />
+          <ActiveIcon size={ICON.lg} strokeWidth={ICON_STROKE} />
         </div>
         <span className="brand-name" aria-hidden={sidebarCollapsed || undefined}>
           Qwix<span>Mail</span>
@@ -34,7 +34,7 @@ export function Sidebar({ children, dock, primaryAction }: SidebarProps) {
           variant="ghost"
           onClick={toggleSidebarCollapsed}
         >
-          {sidebarCollapsed ? <ChevronRight size={16} strokeWidth={ICON_STROKE} /> : <ChevronLeft size={16} strokeWidth={ICON_STROKE} />}
+          {sidebarCollapsed ? <ChevronRight size={ICON.md} strokeWidth={ICON_STROKE} /> : <ChevronLeft size={ICON.md} strokeWidth={ICON_STROKE} />}
         </Button>
       </div>
 

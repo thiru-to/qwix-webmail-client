@@ -11,7 +11,7 @@ import { useSettings } from '../settings/queries'
 import { cn } from '../../lib/utils'
 import { useLogin } from './mutations'
 import './auth.css'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 type ValidationErrors = Partial<Record<'email' | 'password' | 'server', string>>
 
@@ -174,8 +174,8 @@ export function LoginScreen() {
         ) : null}
 
         <Button type="submit" disabled={isPending}>
-          {isPending ? <Spinner size={14} /> : null}
-          Sign in <LogIn size={15} strokeWidth={ICON_STROKE} />
+          {isPending ? <Spinner size={ICON.md} /> : null}
+          Sign in <LogIn size={ICON.md} strokeWidth={ICON_STROKE} />
         </Button>
       </form>
     </div>

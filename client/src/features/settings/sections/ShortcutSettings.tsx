@@ -4,7 +4,7 @@ import { Button } from '../../../components/ui/button'
 import { SHORTCUTS, eventKey } from '../../../lib/shortcuts'
 import { useSettings } from '../queries'
 import { useUpdateSettings } from '../mutations'
-import { ICON_STROKE } from '../../../lib/icons'
+import { ICON, ICON_STROKE } from '../../../lib/icons'
 
 export function ShortcutSettings() {
   const settings = useSettings()
@@ -62,7 +62,7 @@ export function ShortcutSettings() {
       </ul>
 
       <Button size="sm" variant="outline" onClick={reset} disabled={update.isPending}>
-        <RotateCcw size={15} strokeWidth={ICON_STROKE} /> Reset to defaults
+        <RotateCcw size={ICON.md} strokeWidth={ICON_STROKE} /> Reset to defaults
       </Button>
 
       {update.error ? (

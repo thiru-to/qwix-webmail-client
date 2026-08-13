@@ -8,7 +8,7 @@ import { useMailUiStore } from '../../stores/mailUiStore'
 import { useShellStore } from '../../stores/shellStore'
 import { useCreateLabel, useDeleteLabel } from './mutations'
 import { labelQueries } from './queries'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 const COLORS: LabelColor[] = ['pink', 'amber', 'teal', 'green', 'purple', 'orange']
 
@@ -53,7 +53,7 @@ export function LabelSection() {
               type="button"
               onClick={() => setLabelFilter(labelFilter === label.id ? null : label.id)}
             >
-              <Tag size={18} strokeWidth={ICON_STROKE} className={`label-icon ${label.color}`} />
+              <Tag size={ICON.lg} strokeWidth={ICON_STROKE} className={`label-icon ${label.color}`} />
               <span>{label.name}</span>
             </button>
             <button
@@ -63,7 +63,7 @@ export function LabelSection() {
               disabled={remove.isPending}
               onClick={() => remove.mutate(label.id)}
             >
-              <Trash2 size={14} strokeWidth={ICON_STROKE} />
+              <Trash2 size={ICON.sm} strokeWidth={ICON_STROKE} />
             </button>
           </div>
         ))}
@@ -96,16 +96,16 @@ export function LabelSection() {
             ) : null}
             <div className="label-create-actions">
               <button type="submit" className="add-label" disabled={create.isPending}>
-                {create.isPending ? <Spinner size={13} /> : <Plus size={15} strokeWidth={ICON_STROKE} />} Save
+                {create.isPending ? <Spinner size={ICON.md} /> : <Plus size={ICON.md} strokeWidth={ICON_STROKE} />} Save
               </button>
               <button type="button" className="label-delete" aria-label="Cancel" onClick={() => setAdding(false)}>
-                <X size={14} strokeWidth={ICON_STROKE} />
+                <X size={ICON.sm} strokeWidth={ICON_STROKE} />
               </button>
             </div>
           </form>
         ) : (
           <button className="add-label" type="button" onClick={() => setAdding(true)}>
-            <Plus size={16} strokeWidth={ICON_STROKE} /> <span>Add label</span>
+            <Plus size={ICON.md} strokeWidth={ICON_STROKE} /> <span>Add label</span>
           </button>
         )}
       </nav>

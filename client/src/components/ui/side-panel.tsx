@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import { ICON_STROKE } from '../../lib/icons'
+import { ICON, ICON_STROKE } from '../../lib/icons'
 
 type SidePanelProps = {
   open: boolean
@@ -29,7 +29,7 @@ export function SidePanel({ open, onClose, title, eyebrow, children, footer, cla
           <h2 id={titleId}>{title}</h2>
         </div>
         <button type="button" className="close-dialog" aria-label="Close panel" onClick={onClose}>
-          <X size={18} strokeWidth={ICON_STROKE} />
+          <X size={ICON.lg} strokeWidth={ICON_STROKE} />
         </button>
       </div>
       <div className="ui-side-panel-body">{children}</div>
