@@ -216,7 +216,9 @@
 }
 .collapse-button:hover { background: var(--surface-hover); color: var(--text); }
 
-.ui-button { align-items: center; border: 1px solid transparent; border-radius: 10px; display: inline-flex; justify-content: center; transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease; }
+/* gap, not the space in the JSX: these are flex containers, and flexbox trims leading and trailing
+   white space inside a flex item, so `<Icon /> Label` renders with the icon touching the text. */
+.ui-button { align-items: center; border: 1px solid transparent; border-radius: 10px; display: inline-flex; gap: 8px; justify-content: center; transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease; }
 .ui-button:focus-visible, .folder-item:focus-visible, .product-tab:focus-visible, .star-button:focus-visible, .reader-star:focus-visible, .theme-toggle:focus-visible, .attachment-chip:focus-visible { outline: 2px solid #ff73ac; outline-offset: 2px; }
 .ui-button-default { background: var(--pink); color: white; }
 .ui-button-default:hover { background: #ff3f83; transform: translateY(-1px); }
