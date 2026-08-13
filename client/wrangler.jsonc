@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "qwix-webmail",
+  // Five accounts sit behind this login. This is the one holding the qwixmail.com zone, which is
+  // also where qwixmail-web runs — a custom domain only binds to a zone on the same account.
+  "account_id": "42e2fec5ebd490050d6ba0450c890088",
+  "compatibility_date": "2026-08-13",
+  // No `main`: nothing here runs server-side. The app talks to the API directly from the browser,
+  // so every request is a static asset — free and unmetered, and there is no Worker to invoke.
+  "assets": {
+    "directory": "./dist",
+    // There is no router; the app lives at /. This still matters for a refresh on any other path,
+    // which would otherwise 404 instead of loading the app.
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [{ "pattern": "webmail.qwixmail.com", "custom_domain": true }]
+}
