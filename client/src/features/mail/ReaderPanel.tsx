@@ -1,7 +1,7 @@
 import type { Message } from '@api/types'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Info, ShieldAlert, Star } from 'lucide-react'
+import { FileText, ImageOff, Info, ShieldAlert, Star } from 'lucide-react'
 import { attachmentUrl } from '../../api/mail'
 import { Avatar } from '../../components/ui/avatar'
 import { Button } from '../../components/ui/button'
@@ -88,6 +88,13 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
   const senderDomain = domainOf(message.from?.address)
   const htmlPermitted = htmlAllowed(settings.htmlMode, settings.htmlSenders, message.from?.address)
   const renderHtml = Boolean(message.html) && (htmlPermitted || showHtmlOnce)
+
+  const [imagesOnceFor, setImagesOnceFor] = useState<number | null>(null)
+  const showImages = allowRemote || imagesOnceFor === message.uid
+  // Only worth saying when the message actually has some — most mail does not, and a notice on
+  // every message would be noise nobody reads.
+  const hasRemoteImages = Boolean(message.html && /<img[^>]+\bsrc=["']?https?:/i.test(message.html))
+  const imagesBlocked = renderHtml && hasRemoteImages && !showImages
   // Plenty of HTML mail carries no text/plain part at all, so refusing the HTML cannot be the end
   // of it — otherwise the message reads as empty and the setting looks like a bug.
   const withheld = Boolean(message.html) && !renderHtml
@@ -179,7 +186,7 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
       ) : null}
 
       {withheld ? (
-        <div className="html-notice" role="status">
+        <div className="reader-notice" role="status">
           <ShieldAlert size={ICON.md} strokeWidth={ICON_STROKE} />
           <span>
             {settings.htmlMode === 'never'
@@ -204,12 +211,32 @@ function MessageDetail({ message, onBack }: { message: Message; onBack?: () => v
         </div>
       ) : null}
 
+      {imagesBlocked ? (
+        <div className="reader-notice" role="status">
+          <ImageOff size={ICON.md} strokeWidth={ICON_STROKE} />
+          <span>Images are blocked, so the sender cannot tell when you opened this.</span>
+          <Button size="sm" variant="outline" onClick={() => setImagesOnceFor(message.uid)}>
+            Show images
+          </Button>
+          {senderDomain ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={updateSettings.isPending}
+              onClick={() => updateSettings.mutate({ remoteSenders: [...settings.remoteSenders, senderDomain] })}
+            >
+              Always allow {senderDomain}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {renderHtml ? (
         <iframe
           className="message-frame"
           sandbox=""
           title="Message body"
-          srcDoc={frameHead(allowRemote) + message.html}
+          srcDoc={frameHead(showImages) + message.html}
         />
       ) : (
         <div className="message-body">

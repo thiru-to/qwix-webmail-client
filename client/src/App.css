@@ -507,7 +507,7 @@
   .reader-date { font-size: 12px; }
 }
 
-.html-notice {
+.reader-notice {
   align-items: center;
   background: var(--surface-control);
   border: 1px solid var(--line-bright);
@@ -520,8 +520,8 @@
   margin-bottom: 12px;
   padding: 10px 12px;
 }
-.html-notice svg { flex: none; }
-.html-notice span { margin-right: auto; }
+.reader-notice svg { flex: none; }
+.reader-notice span { margin-right: auto; }
 .message-frame {
   background: #ffffff;
   border: 0;
