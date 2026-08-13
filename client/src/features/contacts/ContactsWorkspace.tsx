@@ -1,7 +1,7 @@
 import type { ContactItem } from '@api/types'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Building2, Mail, Pencil, Phone, UsersRound } from 'lucide-react'
+import { Pencil, Trash2, UsersRound } from 'lucide-react'
 import { AppShell } from '../../components/shell/AppShell'
 import { AccountDock } from '../auth/AccountDock'
 import { Avatar } from '../../components/ui/avatar'
@@ -12,9 +12,11 @@ import { Panel } from '../../components/ui/panel'
 import { QueryState } from '../../components/ui/query-state'
 import { SkeletonRow } from '../../components/ui/skeleton'
 import { avatarTone, initialsOf } from '../../lib/format'
-import { LabelChips } from '../labels/LabelChips'
-import { LabelPicker } from '../labels/LabelPicker'
 import { useContactsUiStore } from '../../stores/contactsUiStore'
+import { Modal } from '../../components/ui/modal'
+import { Spinner } from '../../components/ui/spinner'
+import { useDeleteContact } from './mutations'
+import { ContactDetail } from './ContactDetail'
 import { ContactFormPanel } from './ContactFormPanel'
 import { contactsQueries } from './queries'
 import './contacts.css'
@@ -29,6 +31,17 @@ export function ContactsWorkspace() {
   const setSearch = useContactsUiStore((state) => state.setSearch)
   const selectedId = useContactsUiStore((state) => state.selectedId)
   const setSelectedId = useContactsUiStore((state) => state.setSelectedId)
+  const remove = useDeleteContact()
+
+  // Selecting and opening are the same gesture here, as they are on the calendar.
+  function handleSelect(id: string) {
+    setSelectedId(id)
+    setPanel('view')
+  }
+
+  function handleDelete() {
+    if (selected?.url) remove.mutate(selected.url)
+  }
   const panel = useContactsUiStore((state) => state.panel)
   const setPanel = useContactsUiStore((state) => state.setPanel)
 
@@ -108,71 +121,53 @@ export function ContactsWorkspace() {
                       key={contact.id}
                       contact={contact}
                       selected={contact.id === selected?.id}
-                      onSelect={() => setSelectedId(contact.id)}
+                      onSelect={() => handleSelect(contact.id)}
                     />
                   ))
                 )}
               </List>
             </Panel>
 
-            {panel !== 'none' ? (
-              <ContactFormPanel key={panel === 'edit' ? selected?.id : 'new'} contact={panel === 'edit' ? selected : undefined} />
-            ) : null}
-
-            {(
-              <section className="contacts-detail reader-panel">
-                {selected ? (
-                  <>
-                    <div className="reader-sender">
-                      <Avatar initials={initialsOf(selected.name)} tone={avatarTone(selected.id)} size="large" />
-                      <div className="sender-details">
-                        <h2>{selected.name}</h2>
-                        <p>
-                          {selected.title ?? '—'}
-                          <br />
-                          {selected.organization ?? '—'}
-                        </p>
-                      </div>
-                      <Button size="sm" variant="outline" onClick={() => setPanel('edit')}>
-                        <Pencil size={ICON.md} strokeWidth={ICON_STROKE} /> Edit
-                      </Button>
-                    </div>
-                    <div className="detail-labels">
-                      <LabelPicker kind="contact" resourceId={selected.id} active={selected.labelIds} />
-                      <LabelChips ids={selected.labelIds} />
-                    </div>
-                    <div className="contact-fields">
-                      {selected.emails.map((email) => (
-                        <p key={email.value}>
-                          <Mail size={ICON.md} strokeWidth={ICON_STROKE} /> {email.value}
-                          {email.type ? <em>{email.type}</em> : null}
-                        </p>
-                      ))}
-                      {selected.phones.map((phone) => (
-                        <p key={phone.value}>
-                          <Phone size={ICON.md} strokeWidth={ICON_STROKE} /> {phone.value}
-                          {phone.type ? <em>{phone.type}</em> : null}
-                        </p>
-                      ))}
-                      {selected.organization ? (
-                        <p>
-                          <Building2 size={ICON.md} strokeWidth={ICON_STROKE} /> {selected.organization}
-                        </p>
-                      ) : null}
-                    </div>
-                    {selected.note ? (
-                      <div className="message-body">
-                        <p>{selected.note}</p>
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="loading-state">Select a contact to view details.</p>
-                )}
-              </section>
-            )}
+            <section className="contacts-detail reader-panel">
+              <ContactDetail contact={selected} onEdit={() => setPanel('edit')} />
+            </section>
           </div>
         </QueryState>
+
+        {panel === 'create' || panel === 'edit' ? (
+          <ContactFormPanel
+            key={panel === 'edit' ? selected?.id : 'new'}
+            contact={panel === 'edit' ? selected : undefined}
+          />
+        ) : null}
+
+        {panel === 'view' && selected ? (
+          <Modal
+            open
+            onClose={() => setPanel('none')}
+            eyebrow={selected.organization ?? 'Contact'}
+            title={selected.name}
+            footer={
+              <>
+                <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
+                  {remove.isPending ? <Spinner size={ICON.md} /> : <Trash2 size={ICON.md} strokeWidth={ICON_STROKE} />}
+                  Delete
+                </Button>
+                <Button variant="outline" onClick={() => setPanel('edit')}>
+                  <Pencil size={ICON.md} strokeWidth={ICON_STROKE} />
+                  Edit
+                </Button>
+              </>
+            }
+          >
+            <ContactDetail contact={selected} />
+            {remove.error ? (
+              <p className="ui-form-error" role="alert">
+                {remove.error.message}
+              </p>
+            ) : null}
+          </Modal>
+        ) : null}
       </main>
     </AppShell>
   )
