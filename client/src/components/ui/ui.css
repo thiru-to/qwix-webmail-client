@@ -192,6 +192,15 @@
 .query-error .ui-button {
   gap: 8px;
 }
+/* Inherit the card's colour rather than introducing a second one — weight and opacity carry the
+   hierarchy, so this reads the same in both themes. */
+.query-error-title {
+  font-weight: 600;
+}
+.query-error-note {
+  font-size: 12px;
+  opacity: 0.75;
+}
 
 .ui-form-field {
   color: var(--text);
