@@ -18,6 +18,7 @@ import { useContactsUiStore } from '../../stores/contactsUiStore'
 import { ContactFormPanel } from './ContactFormPanel'
 import { contactsQueries } from './queries'
 import './contacts.css'
+import { ICON_STROKE } from '../../lib/icons'
 
 const primaryEmail = (contact: ContactItem) => contact.emails[0]?.value ?? ''
 
@@ -50,7 +51,7 @@ export function ContactsWorkspace() {
       sidebar={
         <nav className="folder-list" aria-label="Contact groups">
           <button className="folder-item active" type="button">
-            <UsersRound size={18} strokeWidth={1.75} />
+            <UsersRound size={18} strokeWidth={ICON_STROKE} />
             <span>All contacts</span>
             <span className="folder-count">{contacts.length || '—'}</span>
           </button>
@@ -131,7 +132,7 @@ export function ContactsWorkspace() {
                         </p>
                       </div>
                       <Button size="sm" variant="outline" onClick={() => setPanel('edit')}>
-                        <Pencil size={15} strokeWidth={1.75} /> Edit
+                        <Pencil size={15} strokeWidth={ICON_STROKE} /> Edit
                       </Button>
                     </div>
                     <div className="detail-labels">
@@ -141,19 +142,19 @@ export function ContactsWorkspace() {
                     <div className="contact-fields">
                       {selected.emails.map((email) => (
                         <p key={email.value}>
-                          <Mail size={15} strokeWidth={1.75} /> {email.value}
+                          <Mail size={15} strokeWidth={ICON_STROKE} /> {email.value}
                           {email.type ? <em>{email.type}</em> : null}
                         </p>
                       ))}
                       {selected.phones.map((phone) => (
                         <p key={phone.value}>
-                          <Phone size={15} strokeWidth={1.75} /> {phone.value}
+                          <Phone size={15} strokeWidth={ICON_STROKE} /> {phone.value}
                           {phone.type ? <em>{phone.type}</em> : null}
                         </p>
                       ))}
                       {selected.organization ? (
                         <p>
-                          <Building2 size={15} strokeWidth={1.75} /> {selected.organization}
+                          <Building2 size={15} strokeWidth={ICON_STROKE} /> {selected.organization}
                         </p>
                       ) : null}
                     </div>

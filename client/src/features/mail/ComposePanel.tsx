@@ -11,6 +11,7 @@ import { settingsQueries } from '../settings/queries'
 import { formatBytes } from '../../lib/format'
 import { useMailUiStore } from '../../stores/mailUiStore'
 import { useSendMessage } from './mutations'
+import { ICON_STROKE } from '../../lib/icons'
 
 type ValidationErrors = Partial<Record<'to' | 'body' | 'attachments', string>>
 
@@ -107,7 +108,7 @@ export function ComposePanel() {
         <div className="compose-header">
           <h1>{subject.trim() || 'New message'}</h1>
           <Button aria-label="Discard message" size="icon" variant="ghost" onClick={closeCompose} disabled={isPending}>
-            <X size={18} strokeWidth={1.75} />
+            <X size={18} strokeWidth={ICON_STROKE} />
           </Button>
         </div>
 
@@ -196,7 +197,7 @@ export function ComposePanel() {
           />
           <label className="attachment-chip" htmlFor="compose-attachments">
             <span className="file-icon">
-              <Paperclip size={15} strokeWidth={1.75} />
+              <Paperclip size={15} strokeWidth={ICON_STROKE} />
             </span>
             Attach files
           </label>
@@ -209,7 +210,7 @@ export function ComposePanel() {
                 aria-label={`Remove ${attachment.filename}`}
                 onClick={() => setAttachments((current) => current.filter((_, item) => item !== index))}
               >
-                <X size={12} strokeWidth={1.75} />
+                <X size={12} strokeWidth={ICON_STROKE} />
               </button>
             </span>
           ))}
@@ -229,7 +230,7 @@ export function ComposePanel() {
         <div className="compose-actions">
           <Button type="submit" disabled={isPending}>
             {isPending ? <Spinner size={14} /> : null}
-            Send <Send size={15} strokeWidth={1.75} />
+            Send <Send size={15} strokeWidth={ICON_STROKE} />
           </Button>
           <Button type="button" variant="ghost" onClick={closeCompose} disabled={isPending}>
             Discard

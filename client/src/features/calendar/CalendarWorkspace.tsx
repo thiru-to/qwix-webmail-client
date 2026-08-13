@@ -45,6 +45,7 @@ import {
 } from '../../stores/calendarUiStore'
 import { useShellStore } from '../../stores/shellStore'
 import './calendar.css'
+import { ICON_STROKE } from '../../lib/icons'
 
 const viewIcons: Record<CalendarViewMode, typeof CalendarDays> = {
   day: Sun,
@@ -138,7 +139,7 @@ export function CalendarWorkspace() {
                 type="button"
                 onClick={() => setViewMode(id)}
               >
-                <Icon size={18} strokeWidth={1.75} />
+                <Icon size={18} strokeWidth={ICON_STROKE} />
                 <span>{label}</span>
               </button>
             )
@@ -173,7 +174,7 @@ export function CalendarWorkspace() {
                 variant="ghost"
                 onClick={() => setFocusDate(step(focusDate, viewMode, -1))}
               >
-                <ChevronLeft size={18} strokeWidth={1.75} />
+                <ChevronLeft size={18} strokeWidth={ICON_STROKE} />
               </Button>
               <Button size="sm" variant="outline" onClick={() => setFocusDate(todayIso())}>
                 Today
@@ -184,7 +185,7 @@ export function CalendarWorkspace() {
                 variant="ghost"
                 onClick={() => setFocusDate(step(focusDate, viewMode, 1))}
               >
-                <ChevronRight size={18} strokeWidth={1.75} />
+                <ChevronRight size={18} strokeWidth={ICON_STROKE} />
               </Button>
               <Button
                 size="sm"

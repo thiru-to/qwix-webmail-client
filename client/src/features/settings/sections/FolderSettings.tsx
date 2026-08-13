@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui/input'
 import { Spinner } from '../../../components/ui/spinner'
 import { mailQueries } from '../../mail/queries'
 import { useCreateFolder, useDeleteFolder, useRenameFolder } from '../mutations'
+import { ICON_STROKE } from '../../../lib/icons'
 
 const isSystem = (folder: MailFolder) => Boolean(folder.specialUse) || folder.path.toUpperCase() === 'INBOX'
 
@@ -61,10 +62,10 @@ export function FolderSettings() {
                   aria-label={`Rename ${folder.name}`}
                 />
                 <Button type="submit" size="sm" disabled={rename.isPending}>
-                  <Check size={15} strokeWidth={1.75} />
+                  <Check size={15} strokeWidth={ICON_STROKE} />
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setRenaming(null)}>
-                  <X size={15} strokeWidth={1.75} />
+                  <X size={15} strokeWidth={ICON_STROKE} />
                 </Button>
               </form>
             ) : (
@@ -75,7 +76,7 @@ export function FolderSettings() {
                 </span>
                 {isSystem(folder) ? (
                   <span className="settings-locked" title="System folder">
-                    <Lock size={14} strokeWidth={1.75} />
+                    <Lock size={14} strokeWidth={ICON_STROKE} />
                   </span>
                 ) : (
                   <>
@@ -87,10 +88,10 @@ export function FolderSettings() {
                         setRenameTo(folder.path)
                       }}
                     >
-                      <Pencil size={14} strokeWidth={1.75} />
+                      <Pencil size={14} strokeWidth={ICON_STROKE} />
                     </button>
                     <button type="button" aria-label={`Delete ${folder.name}`} onClick={() => setConfirming(folder)}>
-                      <Trash2 size={14} strokeWidth={1.75} />
+                      <Trash2 size={14} strokeWidth={ICON_STROKE} />
                     </button>
                   </>
                 )}

@@ -5,6 +5,7 @@ import { List, ListRow } from '../../components/ui/list'
 import { LabelChips } from '../labels/LabelChips'
 import { LabelPicker } from '../labels/LabelPicker'
 import type { EventView } from '../../lib/calendar'
+import { ICON_STROKE } from '../../lib/icons'
 
 const attendeeLabel = (attendee: Attendee) => attendee.name ?? attendee.email ?? 'Unknown'
 
@@ -48,17 +49,17 @@ export function EventDetail({ event, onEdit }: { event?: EventView; onEdit?: () 
         </div>
         {onEdit ? (
           <Button size="sm" variant="outline" onClick={onEdit}>
-            <Pencil size={15} strokeWidth={1.75} /> Edit
+            <Pencil size={15} strokeWidth={ICON_STROKE} /> Edit
           </Button>
         ) : null}
       </div>
       <p className="calendar-detail-meta">
         {event.timeLabel}
-        {event.recurring ? <Repeat size={14} strokeWidth={1.75} /> : null}
+        {event.recurring ? <Repeat size={14} strokeWidth={ICON_STROKE} /> : null}
       </p>
       {event.location ? (
         <p className="calendar-detail-meta">
-          <MapPin size={14} strokeWidth={1.75} /> {event.location}
+          <MapPin size={14} strokeWidth={ICON_STROKE} /> {event.location}
         </p>
       ) : null}
       {event.attendees.length ? (

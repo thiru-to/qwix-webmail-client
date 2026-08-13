@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { ICON_STROKE } from '../../lib/icons'
 
 type ChipInputProps = {
   id?: string
@@ -45,7 +46,7 @@ export function ChipInput({ id, value, onChange, placeholder, label, className }
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onChange(value.filter((item) => item !== chip))}
           >
-            <X size={12} strokeWidth={1.75} />
+            <X size={12} strokeWidth={ICON_STROKE} />
           </button>
         </span>
       ))}

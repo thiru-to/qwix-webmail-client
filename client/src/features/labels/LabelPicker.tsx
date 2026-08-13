@@ -5,6 +5,7 @@ import { Check, Tag } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { useAssignLabel } from './mutations'
 import { labelQueries } from './queries'
+import { ICON_STROKE } from '../../lib/icons'
 
 type LabelPickerProps = {
   kind: LabelKind
@@ -23,7 +24,7 @@ export function LabelPicker({ kind, resourceId, active }: LabelPickerProps) {
   return (
     <div className="label-picker">
       <Button size="sm" variant="outline" onClick={() => setOpen((current) => !current)}>
-        <Tag size={15} strokeWidth={1.75} /> Labels
+        <Tag size={15} strokeWidth={ICON_STROKE} /> Labels
       </Button>
 
       {open ? (
@@ -43,7 +44,7 @@ export function LabelPicker({ kind, resourceId, active }: LabelPickerProps) {
                   >
                     <span className={`label-dot ${label.color}`} />
                     {label.name}
-                    {on ? <Check size={14} strokeWidth={2} /> : null}
+                    {on ? <Check size={14} strokeWidth={ICON_STROKE} /> : null}
                   </button>
                 )
               })

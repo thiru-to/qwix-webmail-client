@@ -11,6 +11,7 @@ import { TextArea } from '../../components/ui/textarea'
 import { localInstant, minutesToTimeInput, timeInputToMinutes } from '../../lib/calendar'
 import { useCalendarUiStore } from '../../stores/calendarUiStore'
 import { useCreateEvent, useUpdateEvent } from './mutations'
+import { ICON_STROKE } from '../../lib/icons'
 
 type ValidationErrors = Partial<Record<'title' | 'date' | 'endMinutes', string>>
 
@@ -77,7 +78,7 @@ export function EventFormPanel({ event: editing }: { event?: EventView }) {
         <div className="calendar-event-form-actions">
           <Button type="submit" form="event-create-form" disabled={isPending}>
             {isPending ? <Spinner size={14} /> : null}
-            Save event <CalendarPlus size={15} strokeWidth={1.75} />
+            Save event <CalendarPlus size={15} strokeWidth={ICON_STROKE} />
           </Button>
           <Button type="button" variant="ghost" onClick={closePanel} disabled={isPending}>
             Cancel

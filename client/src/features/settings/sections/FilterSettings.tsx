@@ -19,6 +19,7 @@ import {
   useUpdateFilter,
   useVerifyForwarder,
 } from '../mutations'
+import { ICON_STROKE } from '../../../lib/icons'
 
 const CONDITION_FIELDS: { id: keyof FilterConditions; label: string; placeholder: string }[] = [
   { id: 'from', label: 'From', placeholder: 'billing@acme.com' },
@@ -76,7 +77,7 @@ export function FilterSettings() {
                 <em>{summarise(filter)}</em>
               </span>
               <button type="button" aria-label={`Edit ${filter.name}`} onClick={() => setEditing(filter)}>
-                <Pencil size={14} strokeWidth={1.75} />
+                <Pencil size={14} strokeWidth={ICON_STROKE} />
               </button>
               <button
                 type="button"
@@ -84,7 +85,7 @@ export function FilterSettings() {
                 disabled={remove.isPending}
                 onClick={() => remove.mutate(filter.id)}
               >
-                <Trash2 size={14} strokeWidth={1.75} />
+                <Trash2 size={14} strokeWidth={ICON_STROKE} />
               </button>
             </li>
           ))}
@@ -95,7 +96,7 @@ export function FilterSettings() {
 
       <div className="settings-form-actions">
         <Button type="button" size="sm" variant="outline" onClick={() => run.mutate('INBOX')} disabled={run.isPending}>
-          {run.isPending ? <Spinner size={13} /> : <Play size={15} strokeWidth={1.75} />} Run on Inbox
+          {run.isPending ? <Spinner size={13} /> : <Play size={15} strokeWidth={ICON_STROKE} />} Run on Inbox
         </Button>
       </div>
 
@@ -254,12 +255,12 @@ function FilterForm({ editing, draft, onDone }: FilterFormProps) {
 
         <div className="settings-form-actions">
           <Button type="submit" size="sm" disabled={create.isPending || update.isPending}>
-            {create.isPending || update.isPending ? <Spinner size={13} /> : <Check size={15} strokeWidth={1.75} />}
+            {create.isPending || update.isPending ? <Spinner size={13} /> : <Check size={15} strokeWidth={ICON_STROKE} />}
             {editing ? 'Save filter' : 'Add filter'}
           </Button>
           {editing || draft ? (
             <Button type="button" size="sm" variant="ghost" onClick={finish}>
-              <X size={15} strokeWidth={1.75} /> Cancel
+              <X size={15} strokeWidth={ICON_STROKE} /> Cancel
             </Button>
           ) : null}
         </div>
@@ -348,11 +349,11 @@ function ForwardingAddresses() {
               </span>
               {!entry.verified ? (
                 <button type="button" onClick={() => setPending(entry.email)} aria-label={`Enter code for ${entry.email}`}>
-                  <Check size={14} strokeWidth={1.75} />
+                  <Check size={14} strokeWidth={ICON_STROKE} />
                 </button>
               ) : null}
               <button type="button" aria-label={`Remove ${entry.email}`} onClick={() => remove.mutate(entry.id)}>
-                <Trash2 size={14} strokeWidth={1.75} />
+                <Trash2 size={14} strokeWidth={ICON_STROKE} />
               </button>
             </li>
           ))}

@@ -3,6 +3,7 @@ import { LogOut } from 'lucide-react'
 import { Spinner } from '../../components/ui/spinner'
 import { useLogout } from './mutations'
 import { authQueries } from './queries'
+import { ICON_STROKE } from '../../lib/icons'
 
 export function AccountDock() {
   const { data } = useQuery(authQueries.session())
@@ -21,7 +22,7 @@ export function AccountDock() {
         </span>
       </div>
       <button className="signout-button" type="button" onClick={() => mutate()} disabled={isPending}>
-        {isPending ? <Spinner size={15} /> : <LogOut size={15} strokeWidth={1.75} />}
+        {isPending ? <Spinner size={15} /> : <LogOut size={15} strokeWidth={ICON_STROKE} />}
         <span>Sign out</span>
       </button>
     </div>

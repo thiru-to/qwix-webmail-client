@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui/input'
 import { Spinner } from '../../../components/ui/spinner'
 import { useCreateLabel, useDeleteLabel, useUpdateLabel } from '../../labels/mutations'
 import { labelQueries } from '../../labels/queries'
+import { ICON_STROKE } from '../../../lib/icons'
 
 const COLORS: LabelColor[] = ['pink', 'amber', 'teal', 'green', 'purple', 'orange']
 
@@ -71,12 +72,12 @@ export function LabelSettings() {
         />
         <ColorPicker value={color} onChange={setColor} />
         <Button type="submit" size="sm" disabled={create.isPending || update.isPending}>
-          {create.isPending || update.isPending ? <Spinner size={13} /> : <Check size={15} strokeWidth={1.75} />}
+          {create.isPending || update.isPending ? <Spinner size={13} /> : <Check size={15} strokeWidth={ICON_STROKE} />}
           {editing ? 'Save' : 'Add'}
         </Button>
         {editing ? (
           <Button type="button" size="sm" variant="ghost" onClick={cancelEdit}>
-            <X size={15} strokeWidth={1.75} />
+            <X size={15} strokeWidth={ICON_STROKE} />
           </Button>
         ) : null}
       </form>
@@ -90,7 +91,7 @@ export function LabelSettings() {
                 {label.name}
               </span>
               <button type="button" aria-label={`Edit ${label.name}`} onClick={() => startEdit(label)}>
-                <Pencil size={14} strokeWidth={1.75} />
+                <Pencil size={14} strokeWidth={ICON_STROKE} />
               </button>
               <button
                 type="button"
@@ -98,7 +99,7 @@ export function LabelSettings() {
                 disabled={remove.isPending}
                 onClick={() => remove.mutate(label.id)}
               >
-                <Trash2 size={14} strokeWidth={1.75} />
+                <Trash2 size={14} strokeWidth={ICON_STROKE} />
               </button>
             </li>
           ))}

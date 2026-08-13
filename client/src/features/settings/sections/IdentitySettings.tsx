@@ -9,6 +9,7 @@ import { Spinner } from '../../../components/ui/spinner'
 import { authQueries } from '../../auth/queries'
 import { settingsQueries } from '../queries'
 import { useCreateIdentity, useDeleteIdentity, useUpdateIdentity } from '../mutations'
+import { ICON_STROKE } from '../../../lib/icons'
 
 export function IdentitySettings() {
   const { data: identities } = useQuery(settingsQueries.identities())
@@ -62,7 +63,7 @@ export function IdentitySettings() {
         </FormField>
         <div className="settings-form-actions">
           <Button type="submit" size="sm" disabled={create.isPending || update.isPending}>
-            {create.isPending || update.isPending ? <Spinner size={13} /> : <Check size={15} strokeWidth={1.75} />}
+            {create.isPending || update.isPending ? <Spinner size={13} /> : <Check size={15} strokeWidth={ICON_STROKE} />}
             {editing ? 'Save' : 'Add identity'}
           </Button>
           {editing ? (
@@ -76,7 +77,7 @@ export function IdentitySettings() {
                 setEmail('')
               }}
             >
-              <X size={15} strokeWidth={1.75} />
+              <X size={15} strokeWidth={ICON_STROKE} />
             </Button>
           ) : null}
         </div>
@@ -96,7 +97,7 @@ export function IdentitySettings() {
                 className={identity.isDefault ? 'settings-default active' : 'settings-default'}
                 onClick={() => update.mutate({ id: identity.id, isDefault: true })}
               >
-                <Star size={14} strokeWidth={1.75} fill={identity.isDefault ? 'currentColor' : 'none'} />
+                <Star size={14} strokeWidth={ICON_STROKE} fill={identity.isDefault ? 'currentColor' : 'none'} />
               </button>
               <button
                 type="button"
@@ -107,7 +108,7 @@ export function IdentitySettings() {
                   setEmail(identity.email)
                 }}
               >
-                <Pencil size={14} strokeWidth={1.75} />
+                <Pencil size={14} strokeWidth={ICON_STROKE} />
               </button>
               <button
                 type="button"
@@ -115,7 +116,7 @@ export function IdentitySettings() {
                 disabled={remove.isPending}
                 onClick={() => remove.mutate(identity.id)}
               >
-                <Trash2 size={14} strokeWidth={1.75} />
+                <Trash2 size={14} strokeWidth={ICON_STROKE} />
               </button>
             </li>
           ))}

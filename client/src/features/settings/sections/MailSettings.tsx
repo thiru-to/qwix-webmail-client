@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import { useSettings } from '../queries'
 import { useUpdateSettings } from '../mutations'
+import { ICON_STROKE } from '../../../lib/icons'
 
 export function MailSettings() {
   const settings = useSettings()
@@ -60,7 +61,7 @@ export function MailSettings() {
               <li key={entry}>
                 <span>{entry}</span>
                 <button type="button" aria-label={`Remove ${entry}`} onClick={() => remove(entry)}>
-                  <Trash2 size={14} strokeWidth={1.75} />
+                  <Trash2 size={14} strokeWidth={ICON_STROKE} />
                 </button>
               </li>
             ))}
