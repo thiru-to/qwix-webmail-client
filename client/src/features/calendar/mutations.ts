@@ -1,9 +1,10 @@
 import type { EventInput, EventUpdate } from '@api/types'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createEvent, updateEvent } from '../../api/calendar'
+import { createEvent, deleteEvent, updateEvent } from '../../api/calendar'
 import { useCalendarUiStore } from '../../stores/calendarUiStore'
 
-function useEventWrite<TInput>(mutationFn: (input: TInput) => Promise<{ id: string }>) {
+// A write returns the event it produced, except a delete, which has none left to select.
+function useEventWrite<TInput>(mutationFn: (input: TInput) => Promise<{ id: string } | null>) {
   const queryClient = useQueryClient()
   const setSelectedEventId = useCalendarUiStore((state) => state.setSelectedEventId)
   const setPanel = useCalendarUiStore((state) => state.setPanel)
@@ -13,7 +14,7 @@ function useEventWrite<TInput>(mutationFn: (input: TInput) => Promise<{ id: stri
     onSuccess: async (event) => {
       // Every cached range could contain the event, so drop them all rather than guess.
       await queryClient.invalidateQueries({ queryKey: ['calendar', 'events'] })
-      setSelectedEventId(event.id)
+      setSelectedEventId(event?.id ?? '')
       setPanel('none')
     },
   })
@@ -22,3 +23,5 @@ function useEventWrite<TInput>(mutationFn: (input: TInput) => Promise<{ id: stri
 export const useCreateEvent = () => useEventWrite((input: EventInput) => createEvent(input))
 
 export const useUpdateEvent = () => useEventWrite((input: EventUpdate) => updateEvent(input))
+
+export const useDeleteEvent = () => useEventWrite((url: string) => deleteEvent(url).then(() => null))

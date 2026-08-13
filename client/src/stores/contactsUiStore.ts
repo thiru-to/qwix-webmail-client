@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
-export type FormPanel = 'none' | 'create' | 'edit'
+// 'view' is a read-only dialog with edit and delete on it; contacts use the same three states.
+export type FormPanel = 'none' | 'create' | 'edit' | 'view'
 
 type ContactsUiState = {
   selectedId: string

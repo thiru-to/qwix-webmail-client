@@ -117,7 +117,9 @@ export function ContactsWorkspace() {
 
             {panel !== 'none' ? (
               <ContactFormPanel key={panel === 'edit' ? selected?.id : 'new'} contact={panel === 'edit' ? selected : undefined} />
-            ) : (
+            ) : null}
+
+            {(
               <section className="contacts-detail reader-panel">
                 {selected ? (
                   <>

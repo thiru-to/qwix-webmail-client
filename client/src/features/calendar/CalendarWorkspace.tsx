@@ -1,14 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  CalendarDays,
-  CalendarRange,
-  CalendarClock,
-  ChevronLeft,
-  ChevronRight,
-  Grid3x3,
-  Sun,
-} from 'lucide-react'
+import { CalendarClock, CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Grid3x3, Pencil, Sun, Trash2 } from 'lucide-react'
 import { AppShell } from '../../components/shell/AppShell'
 import { AccountDock } from '../auth/AccountDock'
 import { Panel } from '../../components/ui/panel'
@@ -18,6 +10,9 @@ import { SkeletonRow } from '../../components/ui/skeleton'
 import { Button } from '../../components/ui/button'
 import { calendarQueries } from './queries'
 import { DayView, FourWeekView, MonthView, WeekView, YearView } from './CalendarViews'
+import { Modal } from '../../components/ui/modal'
+import { Spinner } from '../../components/ui/spinner'
+import { useDeleteEvent } from './mutations'
 import { EventFormPanel } from './EventFormPanel'
 import { EventAgenda, EventDetail } from './EventWidgets'
 import {
@@ -119,9 +114,26 @@ export function CalendarWorkspace() {
 
   const selected = events.find((event) => event.id === selectedEventId) ?? agendaEvents[0] ?? events[0]
 
+  const remove = useDeleteEvent()
+
   function handleSelectDate(date: string) {
     setFocusDate(date)
-    if (viewMode === 'year') setViewMode('day')
+    // From the year view a date means "take me there", not "add something".
+    if (viewMode === 'year') {
+      setViewMode('day')
+      return
+    }
+    // An empty day is only ever clicked to put something on it.
+    if (!events.some((event) => event.dateKey === date)) setPanel('create')
+  }
+
+  function handleSelectEvent(id: string) {
+    setSelectedEventId(id)
+    setPanel('view')
+  }
+
+  function handleDelete() {
+    if (selected?.url) remove.mutate(selected.url)
   }
 
   return (
@@ -220,7 +232,7 @@ export function CalendarWorkspace() {
                 focusDate={focusDate}
                 selectedEventId={selectedEventId}
                 onSelectDate={handleSelectDate}
-                onSelectEvent={setSelectedEventId}
+                onSelectEvent={handleSelectEvent}
               />
             ) : null}
             {viewMode === 'fourWeek' ? (
@@ -231,7 +243,7 @@ export function CalendarWorkspace() {
                   focusDate={focusDate}
                   selectedEventId={selectedEventId}
                   onSelectDate={handleSelectDate}
-                  onSelectEvent={setSelectedEventId}
+                  onSelectEvent={handleSelectEvent}
                 />
               </div>
             ) : null}
@@ -242,7 +254,7 @@ export function CalendarWorkspace() {
                 focusDate={focusDate}
                 selectedEventId={selectedEventId}
                 onSelectDate={handleSelectDate}
-                onSelectEvent={setSelectedEventId}
+                onSelectEvent={handleSelectEvent}
               />
             ) : null}
             {viewMode === 'day' ? (
@@ -252,7 +264,7 @@ export function CalendarWorkspace() {
                 focusDate={focusDate}
                 selectedEventId={selectedEventId}
                 onSelectDate={handleSelectDate}
-                onSelectEvent={setSelectedEventId}
+                onSelectEvent={handleSelectEvent}
               />
             ) : null}
             {viewMode === 'year' ? (
@@ -261,21 +273,49 @@ export function CalendarWorkspace() {
 
             {viewMode !== 'year' ? (
               <div className="calendar-split">
-                <EventAgenda events={agendaEvents} selectedId={selected?.id} onSelect={setSelectedEventId} />
-                {panel !== 'none' ? (
-                  <EventFormPanel
-                    key={panel === 'edit' ? selected?.id : 'new'}
-                    event={panel === 'edit' ? selected : undefined}
-                  />
-                ) : (
-                  <section className="calendar-detail reader-panel">
-                    <EventDetail event={selected} onEdit={() => setPanel('edit')} />
-                  </section>
-                )}
+                <EventAgenda events={agendaEvents} selectedId={selected?.id} onSelect={handleSelectEvent} />
+                <section className="calendar-detail reader-panel">
+                  <EventDetail event={selected} onEdit={() => setPanel('edit')} />
+                </section>
               </div>
             ) : null}
           </QueryState>
         </Panel>
+
+        {panel === 'create' || panel === 'edit' ? (
+          <EventFormPanel
+            key={panel === 'edit' ? selected?.id : `new-${focusDate}`}
+            event={panel === 'edit' ? selected : undefined}
+          />
+        ) : null}
+
+        {panel === 'view' && selected ? (
+          <Modal
+            open
+            onClose={() => setPanel('none')}
+            eyebrow={selected.dayLabel}
+            title={selected.title || '(untitled)'}
+            footer={
+              <>
+                <Button variant="ghost" onClick={handleDelete} disabled={remove.isPending}>
+                  {remove.isPending ? <Spinner size={ICON.md} /> : <Trash2 size={ICON.md} strokeWidth={ICON_STROKE} />}
+                  Delete
+                </Button>
+                <Button variant="outline" onClick={() => setPanel('edit')}>
+                  <Pencil size={ICON.md} strokeWidth={ICON_STROKE} />
+                  Edit
+                </Button>
+              </>
+            }
+          >
+            <EventDetail event={selected} />
+            {remove.error ? (
+              <p className="ui-form-error" role="alert">
+                {remove.error.message}
+              </p>
+            ) : null}
+          </Modal>
+        ) : null}
       </main>
     </AppShell>
   )

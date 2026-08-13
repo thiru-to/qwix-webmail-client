@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button'
 import { ChipInput } from '../../components/ui/chip-input'
 import { FormField } from '../../components/ui/form-field'
 import { Input } from '../../components/ui/input'
-import { SidePanel } from '../../components/ui/side-panel'
+import { Modal } from '../../components/ui/modal'
 import { Spinner } from '../../components/ui/spinner'
 import { TextArea } from '../../components/ui/textarea'
 import { useContactsUiStore } from '../../stores/contactsUiStore'
@@ -63,7 +63,7 @@ export function ContactFormPanel({ contact }: { contact?: ContactItem }) {
   }
 
   return (
-    <SidePanel
+    <Modal
       open
       onClose={closePanel}
       eyebrow="Contacts"
@@ -147,6 +147,6 @@ export function ContactFormPanel({ contact }: { contact?: ContactItem }) {
           </p>
         ) : null}
       </form>
-    </SidePanel>
+    </Modal>
   )
 }

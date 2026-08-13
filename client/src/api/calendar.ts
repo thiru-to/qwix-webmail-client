@@ -1,4 +1,4 @@
-import type { CalendarEventItem, EventInput, EventsResponse, EventUpdate } from '@api/types'
+import type { CalendarEventItem, EventInput, EventsResponse, EventUpdate, OkResult } from '@api/types'
 import { request } from './client'
 
 export const fetchEvents = (start: string, end: string) =>
@@ -9,3 +9,6 @@ export const createEvent = (input: EventInput) =>
 
 export const updateEvent = (input: EventUpdate) =>
   request<CalendarEventItem>('/calendar/events', { method: 'PUT', body: input })
+
+export const deleteEvent = (url: string) =>
+  request<OkResult>(`/calendar/events?url=${encodeURIComponent(url)}`, { method: 'DELETE' })

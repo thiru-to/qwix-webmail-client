@@ -1,9 +1,10 @@
 import type { LabelKind } from '@api/types'
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Check, Tag } from 'lucide-react'
+import { Check, Plus, Tag } from 'lucide-react'
 import { Button } from '../../components/ui/button'
-import { useAssignLabel } from './mutations'
+import { Input } from '../../components/ui/input'
+import { useAssignLabel, useCreateLabel } from './mutations'
 import { labelQueries } from './queries'
 import { ICON, ICON_STROKE } from '../../lib/icons'
 
@@ -18,8 +19,21 @@ export function LabelPicker({ kind, resourceId, active }: LabelPickerProps) {
   const [open, setOpen] = useState(false)
   const { data: labels } = useQuery(labelQueries.all())
   const assign = useAssignLabel()
+  const create = useCreateLabel()
+  const [name, setName] = useState('')
 
   if (!resourceId) return null
+
+  // Created and applied in one go: reaching this form means wanting the label on this message, and
+  // making someone create it, close the menu, and reopen it to tick it is a worse version of that.
+  async function createAndAssign(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const value = name.trim()
+    if (!value || !resourceId) return
+    const label = await create.mutateAsync({ name: value })
+    await assign.mutateAsync({ labelId: label.id, kind, resourceId, on: true })
+    setName('')
+  }
 
   return (
     <div className="label-picker">
@@ -49,8 +63,26 @@ export function LabelPicker({ kind, resourceId, active }: LabelPickerProps) {
                 )
               })
             ) : (
-              <p className="label-picker-empty">Create a label in the mail sidebar first.</p>
+              <p className="label-picker-empty">No labels yet.</p>
             )}
+
+            <form className="label-picker-create" onSubmit={(event) => void createAndAssign(event)}>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="New label"
+                aria-label="New label name"
+              />
+              <Button type="submit" size="sm" variant="ghost" disabled={create.isPending || assign.isPending}>
+                <Plus size={ICON.sm} strokeWidth={ICON_STROKE} />
+                Add
+              </Button>
+            </form>
+            {create.error ? (
+              <p className="label-picker-error" role="alert">
+                {create.error.message}
+              </p>
+            ) : null}
           </div>
         </>
       ) : null}

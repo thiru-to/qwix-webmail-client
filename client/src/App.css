@@ -524,12 +524,14 @@
 .reader-notice span { margin-right: auto; }
 .message-frame {
   background: #ffffff;
-  border: 0;
-  border-radius: 12px;
+  /* HTML mail is written for a white page, so the white stays — but inset and outlined it reads as
+     a document sitting on the app rather than as the theme having failed. */
+  border: 1px solid var(--line-bright);
+  border-radius: 14px;
   flex: 1 1 auto;
-  margin: 14px -24px 0;
+  margin: 14px 0 0;
   min-height: 320px;
-  width: calc(100% + 48px);
+  width: 100%;
 }
 .message-text { color: var(--muted-strong); font: inherit; margin: 0; white-space: pre-wrap; word-break: break-word; }
 .attachment-chip em { color: var(--muted); font-size: 12px; font-style: normal; margin-left: 4px; }
@@ -642,6 +644,9 @@
 .label-option.active { color: #ffffff; }
 .label-option svg { color: var(--pink); margin-left: auto; }
 .label-dot { border-radius: 50%; flex: none; height: 9px; width: 9px; }
+.label-picker-create { border-top: 1px solid var(--line); display: flex; gap: 6px; margin-top: 6px; padding-top: 8px; }
+.label-picker-create .ui-input { min-width: 0; }
+.label-picker-error { color: #ff8fb0; font-size: 12px; margin: 6px 2px 0; }
 .label-picker-empty { color: var(--muted); font-size: 12px; margin: 0; padding: 8px; }
 
 .detail-labels { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; }
