@@ -256,7 +256,7 @@
 }
 .folder-item svg, .product-tab svg, .layout-option svg, .meta-pill svg, .attachment-chip svg, .section-heading svg { flex: none; }
 .folder-item:hover { background: var(--surface-hover); color: var(--text); }
-.folder-item.active { background: var(--pink-soft); color: #ff9ac5; }
+.folder-item.active { background: var(--pink-soft); color: var(--accent-strong); }
 .folder-item.active:hover { background: var(--nav-active-hover-bg); color: var(--nav-active-hover-text); }
 .folder-item.active svg { color: #ff70ad; }
 .folder-count { color: var(--muted); font-size: 14px; line-height: 1; margin-left: auto; }
@@ -433,7 +433,7 @@
 .theme-light .product-tab { color: #2f3b4d; }
 .theme-light .sidebar-dock { border-color: #e1e6ee; }
 .theme-light .layout-option { color: #3a4658; }
-.theme-light .layout-option.active { background: #ffe4ef; color: #c5155b; }
+.theme-light .layout-option.active { background: #ffe4ef; color: var(--accent-strong); }
 .theme-light .theme-toggle { background: #eef2f8; border-color: #d5deea; color: #1c2433; }
 .theme-light .theme-toggle:hover { background: #e3eaf4; color: #172033; }
 .theme-light .sidebar { background: #f8f8f8; }
@@ -441,7 +441,7 @@
 .theme-light .inbox-column.inbox-reading,
 .theme-light .reader-panel { background: #ffffff; }
 .theme-light .folder-item { color: #2a3445; }
-.theme-light .folder-item.active { background: #ffe6f0; color: #c5155b; }
+.theme-light .folder-item.active { background: #ffe6f0; color: var(--accent-strong); }
 .theme-light .folder-item.active svg { color: #e51c6c; }
 .theme-light .folder-item.active .folder-count { background: #ffd3e3; color: #b01254; }
 .theme-light .section-heading { color: #3d4656; }
@@ -536,14 +536,14 @@
 .message-text { color: var(--muted-strong); font: inherit; margin: 0; white-space: pre-wrap; word-break: break-word; }
 .attachment-chip em { color: var(--muted); font-size: 12px; font-style: normal; margin-left: 4px; }
 .load-more { margin: 14px auto 4px; }
-.filter-popover button.active { background: var(--pink-soft); color: #ff9ac5; }
+.filter-popover button.active { background: var(--pink-soft); color: var(--accent-strong); }
 .compose-attachments { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
 .compose-file-input { height: 0; opacity: 0; position: absolute; width: 0; }
 .contact-fields p em { color: var(--muted); font-size: 12px; font-style: normal; margin-left: 6px; }
 
 .theme-light .message-frame { border-color: #dce3ed; }
 .theme-light .message-text { color: #1c2433; }
-.theme-light .filter-popover button.active { background: #ffe6f0; color: #c5155b; }
+.theme-light .filter-popover button.active { background: #ffe6f0; color: var(--accent-strong); }
 
 .label-badge {
   align-items: center;
@@ -698,7 +698,7 @@
 .theme-light .label-picker-menu { background: #ffffff; border-color: #d7e0eb; box-shadow: 0 12px 30px #8392a533; }
 .theme-light .label-option { color: #121820; }
 .theme-light .label-option:hover { background: #eef2f7; }
-.theme-light .add-label:hover { background: #fff2f7; color: #c5155b; }
+.theme-light .add-label:hover { background: #fff2f7; color: var(--accent-strong); }
 .theme-light .form-note { background: #eef2f7; color: #2f3b4d; }
 .theme-light .compose-header { border-color: #dbe2ec; }
 .theme-light .compose-header h1 { color: #0a0a0a; }
@@ -734,7 +734,7 @@
   align-items: center;
   background: var(--pink-soft);
   border-radius: 50%;
-  color: #ff9ac5;
+  color: var(--accent-strong);
   display: flex;
   flex: none;
   font-size: 12px;
@@ -770,7 +770,7 @@
   background: var(--pink-faint);
   border: 1px solid var(--pink);
   border-radius: 11px;
-  color: #ff9ac5;
+  color: var(--accent-strong);
   font-size: 13px;
   line-height: 1.5;
   margin: 12px 0 0;
@@ -814,7 +814,7 @@
   padding: 3px 8px;
 }
 
-.theme-light .account-avatar { background: #ffe6f0; color: #c5155b; }
+.theme-light .account-avatar { background: #ffe6f0; color: var(--accent-strong); }
 .theme-light .signout-button:hover { background: #e9eef5; color: #172033; }
 .theme-light .auth-expired { background: #ffe6f0; border-color: #ff4e91; color: #a9104c; }
 .theme-light .shortcut-help-backdrop { background: #2a344680; }

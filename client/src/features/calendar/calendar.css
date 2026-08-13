@@ -92,7 +92,7 @@
 .calendar-day.current {
   background: var(--pink-soft);
   border-color: var(--pink);
-  color: #ff9ac5;
+  color: var(--accent-strong);
 }
 
 .calendar-day.focused {
@@ -293,12 +293,12 @@
 .time-grid-day-head.focused {
   background: var(--pink-soft);
   border-color: var(--pink);
-  color: #ff9ac5;
+  color: var(--accent-strong);
 }
 
 .time-grid-day-head.current strong,
 .time-grid-day-head.focused strong {
-  color: #ff9ac5;
+  color: var(--accent-strong);
 }
 
 .time-grid-body {
@@ -430,7 +430,7 @@
 .year-day.current,
 .year-day.focused {
   background: var(--pink-soft);
-  color: #ff9ac5;
+  color: var(--accent-strong);
 }
 
 .year-day.has-events {
@@ -448,7 +448,7 @@
 
 .theme-light .view-option.active {
   background: #ffe4ef;
-  color: #c5155b;
+  color: var(--accent-strong);
 }
 
 .theme-light .calendar-pill.rose { background: #ffe0ec; color: #d3186a; }

@@ -29,6 +29,8 @@
   --nav-active-hover-bg: #4a1830;
   --nav-active-hover-text: var(--qx-pink-200);
   --chip-hover-outline: #ff73ac88;
+  /* Accent text sitting on --pink-soft (active nav, chips, pills). */
+  --accent-strong: var(--qx-pink-300);
   --pink: var(--qx-pink-bright);
   --pink-soft: #2a0f1c;
   --pink-faint: #170a11;
@@ -61,6 +63,7 @@
   --nav-active-hover-bg: var(--qx-pink-100);
   --nav-active-hover-text: var(--qx-pink-700);
   --chip-hover-outline: #ff4e9188;
+  --accent-strong: var(--qx-pink-600);
   --pink: var(--qx-pink-500);
   --pink-soft: var(--qx-pink-50);
   --pink-faint: #fff7fa;
