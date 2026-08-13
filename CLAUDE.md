@@ -4,28 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Qwix is a webmail client for standard IMAP/SMTP/CalDAV/CardDAV servers.
 
-This repo holds the client. The API is its own repo, **checked out beside this one** as
-`../qwix-mailserver-api` — the same tree that runs in production, so the two cannot drift. The
-client needs it present to typecheck: `@api/*` resolves there. Clone both, side by side.
+This repo holds the client. `api/` is a **git submodule** of `qwix-mailserver-api`, the repo that
+deploys to the server — so what runs locally is what runs in production, and the two cannot drift.
+
+```sh
+git clone --recurse-submodules <this repo>     # or, after a plain clone:
+git submodule update --init
+```
+
+The submodule is private, so cloning it needs an SSH key with access. An empty `api/` after clone
+means it was skipped, and the client will not typecheck until it is populated. Committing inside
+`api/` commits to the API repo; the pointer this repo stores moves only when you `git add api`
+here as well — two commits, in that order.
 
 ## Commands
 
 ```sh
 bun install && bun run dev                  # root: both servers via concurrently
-cd ../qwix-mailserver-api && bun install && bun run dev   # Hono API on :3000, hot reload
+cd api    && bun install && bun run dev     # Hono API on :3000, hot reload
 cd client && bun install && bun run dev     # Vite on :5173
 cd client && bun run build                  # tsc -b && vite build
 cd client && bun run lint                   # eslint
-cd ../qwix-mailserver-api && bunx drizzle-kit generate    # after editing src/db/schema.ts
+cd api    && bunx drizzle-kit generate      # after editing src/db/schema.ts
 ```
 
 Bun is the package manager and the runtime everywhere. Client scripts invoke tool
 entrypoints by path (`bun node_modules/vite/bin/vite.js`) because `bun --bun vite`
 still honours the `#!/usr/bin/env node` shebang and silently runs Vite under Node.
 
-No test suite exists. Migrations in `../qwix-mailserver-api/drizzle/` run automatically at API startup.
+No test suite exists. Migrations in `api/drizzle/` run automatically at API startup.
 
-`../qwix-mailserver-api/README.md` is the authoritative reference for routes, auth flow, labels, filters and config — read it before changing anything in that repo, and `deploy/README.md` there before touching the server it runs on.
+`api/README.md` is the authoritative reference for routes, auth flow, labels, filters and config — read it before changing anything under `api/`, and `api/deploy/README.md` before touching the server it runs on.
 
 ## Architecture
 
@@ -34,8 +43,8 @@ The API is a thin, stateless-by-design translation layer: HTTP/JSON in, IMAP/SMT
 ### The mail server is the identity provider
 
 - Login = an IMAP auth attempt. No password hash is stored.
-- The live password sits in a process-local `Map` in `../qwix-mailserver-api/src/lib/account.ts` keyed by session id, **never on disk**. Restarting the API ends every session (`clearSessions()` at boot).
-- `authenticate` middleware (`../qwix-mailserver-api/src/lib/auth.ts`) resolves the cookie to an `Account` and sets `c.get('account')`. Every route below `/mail`, `/calendar`, `/contacts`, `/labels`, `/settings`, `/identities`, `/filters` needs it.
+- The live password sits in a process-local `Map` in `api/src/lib/account.ts` keyed by session id, **never on disk**. Restarting the API ends every session (`clearSessions()` at boot).
+- `authenticate` middleware (`api/src/lib/auth.ts`) resolves the cookie to an `Account` and sets `c.get('account')`. Every route below `/mail`, `/calendar`, `/contacts`, `/labels`, `/settings`, `/identities`, `/filters` needs it.
 - Anything holding per-session resources must register a `release(key)` in `endSession` — currently imap, dav, smtp pools.
 
 ### Connection pools are keyed by session
@@ -48,13 +57,13 @@ The API is a thin, stateless-by-design translation layer: HTTP/JSON in, IMAP/SMT
 
 ### Server quirks live in providers, never at call sites
 
-`../qwix-mailserver-api/src/lib/providers/` — `standard.ts` is the base; `smartermail`/`namecrane`/`mxroute` spread it and override only what differs. To handle new non-standard behaviour, add a hook to `Provider` (`providers/types.ts`) and implement it per profile. Do not branch on provider name inside a route. Reach it via `provider(account)`.
+`api/src/lib/providers/` — `standard.ts` is the base; `smartermail`/`namecrane`/`mxroute` spread it and override only what differs. To handle new non-standard behaviour, add a hook to `Provider` (`providers/types.ts`) and implement it per profile. Do not branch on provider name inside a route. Reach it via `provider(account)`.
 
 `ServerConfig.profile` in SQLite selects the profile; hosts/ports are data, profiles are behaviour.
 
 ### Wire types are the contract
 
-`../qwix-mailserver-api/src/types.ts` is the single source of truth for request/response shapes. The client imports it type-only via the `@api/*` path alias (`client/tsconfig.app.json`), so no server code reaches the bundle. Changing a response shape means changing this file first, then both sides — and it lives in the other repo, so that is two commits.
+`api/src/types.ts` is the single source of truth for request/response shapes. The client imports it type-only via the `@api/*` path alias (`client/tsconfig.app.json`), so no server code reaches the bundle. Changing a response shape means changing this file first, then both sides — and it lives in the submodule, so that is a commit there and a pointer bump here.
 
 ### Labels / filters are ours, not the server's
 
@@ -104,5 +113,5 @@ Hard rules this layering encodes:
 - Comments explain *why* — an invariant, a protocol quirk, a workaround. The existing code is dense with these and light on everything else; match that. No docstrings restating signatures.
 - Errors: `throw new HTTPException(status, { message })` on the API; the global `onError` in `index.ts` turns anything else into a 502 `ApiError`.
 - Validate at the route boundary (see the `integer` / `uidList` helpers in `routes/mail.ts`); don't validate again downstream.
-- `../qwix-mailserver-api/.env.local` seeds the server catalogue only — users bring their own credentials. It contains real credentials; never print or commit it.
-- `../qwix-mailserver-api/qwix.db` is a live local database. Don't delete or rewrite it to "reset" state without asking.
+- `api/.env.local` seeds the server catalogue only — users bring their own credentials. It contains real credentials; never print or commit it.
+- `api/qwix.db` is a live local database. Don't delete or rewrite it to "reset" state without asking.

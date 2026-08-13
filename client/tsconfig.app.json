@@ -8,10 +8,10 @@
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
-    /* API wire types, from the sibling qwix-mailserver-api checkout — the same tree that runs in
-       production, so the two cannot drift. Type-only imports with verbatimModuleSyntax, so nothing
-       here is resolved at build time and no server code reaches the bundle. */
-    "paths": { "@api/*": ["../../qwix-mailserver-api/src/*"] },
+    /* API wire types. api/ is a submodule of the repo that deploys, so this is the same tree that
+       runs in production. Type-only under verbatimModuleSyntax, so no server code reaches the
+       bundle and only tsc ever follows this path. */
+    "paths": { "@api/*": ["../api/src/*"] },
 
     /* Bundler mode */
     "moduleResolution": "bundler",
