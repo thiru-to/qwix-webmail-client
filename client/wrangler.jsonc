@@ -3,6 +3,9 @@
   "name": "qwix-webmail",
   // Five accounts sit behind this login. This is the one holding the qwixmail.com zone, which is
   // also where qwixmail-web runs — a custom domain only binds to a zone on the same account.
+  // This wins over CLOUDFLARE_ACCOUNT_ID, so `wrangler delete` run from here targets THIS account
+  // no matter what the environment says. To touch another account, run from a directory with no
+  // wrangler config; setting the variable alone silently hits production instead.
   "account_id": "42e2fec5ebd490050d6ba0450c890088",
   "compatibility_date": "2026-08-13",
   // No `main`: nothing here runs server-side. The app talks to the API directly from the browser,
