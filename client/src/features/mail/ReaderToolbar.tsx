@@ -19,8 +19,7 @@ import { LabelPicker } from '../labels/LabelPicker'
 import { useSettingsUiStore } from '../../stores/settingsUiStore'
 import { useShellStore } from '../../stores/shellStore'
 import { useMoveMessage, useRoleFolders } from './mutations'
-
-const stroke = 1.75
+import { ICON_STROKE } from '../../lib/icons'
 
 type ReaderToolbarProps = {
   message: Message
@@ -57,41 +56,41 @@ export function ReaderToolbar({
   return (
     <div className="reader-toolbar">
       {onBack ? (
-        <Button aria-label="Back to inbox" className="reader-back" size="icon" variant="ghost" onClick={onBack}>
-          <ArrowLeft size={18} strokeWidth={stroke} />
-        </Button>
+        <IconButton label="Back to inbox" className="reader-back" onClick={onBack}>
+          <ArrowLeft size={17} strokeWidth={ICON_STROKE} />
+        </IconButton>
       ) : null}
 
       <Button size="sm" onClick={onReply}>
-        <Reply size={15} strokeWidth={stroke} /> Reply
+        <Reply size={15} strokeWidth={ICON_STROKE} /> Reply
       </Button>
       <Button size="sm" variant="outline" onClick={onReplyAll}>
-        <ReplyAll size={15} strokeWidth={stroke} /> Reply all
+        <ReplyAll size={15} strokeWidth={ICON_STROKE} /> Reply all
       </Button>
       <Button size="sm" variant="outline" onClick={onForward}>
-        <Forward size={15} strokeWidth={stroke} /> Forward
+        <Forward size={15} strokeWidth={ICON_STROKE} /> Forward
       </Button>
 
       <div className="reader-toolbar-icons">
         <IconButton label="Archive" disabled={!archive || move.isPending} onClick={() => moveTo(archive)}>
-          <Archive size={17} strokeWidth={stroke} />
+          <Archive size={17} strokeWidth={ICON_STROKE} />
         </IconButton>
         <IconButton label="Report spam" disabled={!spam || move.isPending} onClick={() => moveTo(spam)}>
-          <ShieldAlert size={17} strokeWidth={stroke} />
+          <ShieldAlert size={17} strokeWidth={ICON_STROKE} />
         </IconButton>
         <IconButton label="Move to trash" disabled={!trash || move.isPending} onClick={() => moveTo(trash)}>
-          <Trash2 size={17} strokeWidth={stroke} />
+          <Trash2 size={17} strokeWidth={ICON_STROKE} />
         </IconButton>
         <IconButton
           label={message.seen ? 'Mark as unread' : 'Mark as read'}
           onClick={() => onMarkSeen(!message.seen)}
         >
-          {message.seen ? <MailX size={17} strokeWidth={stroke} /> : <MailOpen size={17} strokeWidth={stroke} />}
+          {message.seen ? <MailX size={17} strokeWidth={ICON_STROKE} /> : <MailOpen size={17} strokeWidth={ICON_STROKE} />}
         </IconButton>
 
         <div className="label-picker">
           <IconButton label="Move to folder" onClick={() => setMoveOpen((current) => !current)}>
-            <FolderInput size={17} strokeWidth={stroke} />
+            <FolderInput size={17} strokeWidth={ICON_STROKE} />
           </IconButton>
           {moveOpen ? (
             <>
@@ -126,7 +125,7 @@ export function ReaderToolbar({
       <LabelPicker kind="message" resourceId={message.messageId} active={message.labelIds} />
 
       <Button size="sm" variant="ghost" onClick={filterLikeThis} disabled={!message.from?.address}>
-        <Filter size={15} strokeWidth={stroke} /> Filter like this
+        <Filter size={15} strokeWidth={ICON_STROKE} /> Filter like this
       </Button>
     </div>
   )

@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { Filter, PenLine } from 'lucide-react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { mailQueries } from './queries'
-import { useToggleFlagged } from './mutations'
+import { useMoveMessage, useRoleFolders, useToggleFlagged } from './mutations'
 import { MailCard } from './MailCard'
 import { useMailUiStore, type MailFilter } from '../../stores/mailUiStore'
 import { Button } from '../../components/ui/button'
@@ -14,6 +14,7 @@ import { Spinner } from '../../components/ui/spinner'
 import { addressLabel } from '../../lib/format'
 import { buildThreads } from '../../lib/threading'
 import { useSettings } from '../settings/queries'
+import { ICON_STROKE } from '../../lib/icons'
 
 const FILTERS: { id: MailFilter; label: string; matches: (message: MessageSummary) => boolean }[] = [
   { id: 'unread', label: 'Unread only', matches: (message) => !message.seen },
@@ -42,6 +43,10 @@ export function MessageList() {
     useInfiniteQuery(mailQueries.messages(folder))
   const { data: folders } = useQuery(mailQueries.folders())
   const toggleFlagged = useToggleFlagged()
+  const move = useMoveMessage()
+  const { trash } = useRoleFolders()
+  // Nothing to offer when the server exposes no Trash, or when this folder already is it.
+  const canDelete = !!trash && trash !== folder
 
   // The path separator is server-specific, so take the leaf name the server already gave us.
   const folderName = folders?.find((entry) => entry.path === folder)?.name ?? folder
@@ -97,15 +102,17 @@ export function MessageList() {
         </div>
         <div className="heading-actions">
           <Button size="sm" onClick={() => openCompose()}>
-            <PenLine size={16} strokeWidth={1.75} /> Compose
+            <PenLine size={16} strokeWidth={ICON_STROKE} /> Compose
           </Button>
-          <button
-            className={filterOpen || filters.length ? 'filter-button active' : 'filter-button'}
-            type="button"
+          <Button
+            size="sm"
+            variant="outline"
+            className={filterOpen || filters.length ? 'is-active' : undefined}
+            aria-pressed={filterOpen || filters.length > 0}
             onClick={toggleFilterOpen}
           >
-            <Filter size={16} strokeWidth={1.75} /> Filter
-          </button>
+            <Filter size={16} strokeWidth={ICON_STROKE} /> Filter
+          </Button>
         </div>
       </div>
       {filterOpen ? (
@@ -157,6 +164,8 @@ export function MessageList() {
                   if (layoutMode === 'inbox') setInboxDetailOpen(true)
                 }}
                 onToggleFlag={() => toggleFlagged.mutate({ uid: message.uid, set: !message.flagged })}
+                onDelete={canDelete ? () => move.mutate({ uid: message.uid, to: trash! }) : undefined}
+                deleting={move.isPending && move.variables?.uid === message.uid}
               />
             ))
           )}

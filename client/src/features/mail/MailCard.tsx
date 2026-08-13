@@ -1,12 +1,11 @@
 import type { MessageSummary } from '@api/types'
-import { CornerUpLeft, Paperclip, Star } from 'lucide-react'
+import { CornerUpLeft, Paperclip, Star, Trash2 } from 'lucide-react'
 import { Avatar } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
 import { IconButton } from '../../components/ui/icon-button'
 import { LabelChips } from '../labels/LabelChips'
 import { addressLabel, avatarTone, formatListDate, initialsOf } from '../../lib/format'
-
-const stroke = 1.75
+import { ICON_STROKE } from '../../lib/icons'
 
 type MailCardProps = {
   message: MessageSummary
@@ -14,9 +13,20 @@ type MailCardProps = {
   threadCount?: number
   onSelect: () => void
   onToggleFlag: () => void
+  /** Omitted where there is nowhere to delete to — no Trash folder, or this is Trash. */
+  onDelete?: () => void
+  deleting?: boolean
 }
 
-export function MailCard({ message, selected, threadCount = 1, onSelect, onToggleFlag }: MailCardProps) {
+export function MailCard({
+  message,
+  selected,
+  threadCount = 1,
+  onSelect,
+  onToggleFlag,
+  onDelete,
+  deleting = false,
+}: MailCardProps) {
   const sender = addressLabel(message.from)
   const seed = message.from?.address ?? sender
 
@@ -42,29 +52,45 @@ export function MailCard({ message, selected, threadCount = 1, onSelect, onToggl
         <div className="card-meta">
           {message.hasAttachments ? (
             <span className="meta-pill">
-              <Paperclip size={13} strokeWidth={stroke} />
+              <Paperclip size={13} strokeWidth={ICON_STROKE} />
             </span>
           ) : null}
           {message.answered ? (
             <span className="meta-pill">
-              <CornerUpLeft size={13} strokeWidth={stroke} />
+              <CornerUpLeft size={13} strokeWidth={ICON_STROKE} />
             </span>
           ) : null}
           {message.draft ? <Badge>Draft</Badge> : null}
           <LabelChips ids={message.labelIds} />
         </div>
       </div>
-      <IconButton
-        label={message.flagged ? `Unflag ${message.subject}` : `Flag ${message.subject}`}
-        className={message.flagged ? 'star-button starred' : 'star-button'}
-        pressed={message.flagged}
-        onClick={(event) => {
-          event.stopPropagation()
-          onToggleFlag()
-        }}
-      >
-        <Star size={17} strokeWidth={stroke} fill={message.flagged ? 'currentColor' : 'none'} />
-      </IconButton>
+      <div className="mail-card-actions">
+        <IconButton
+          label={message.flagged ? `Unflag ${message.subject}` : `Flag ${message.subject}`}
+          className={message.flagged ? 'star-button starred' : 'star-button'}
+          pressed={message.flagged}
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleFlag()
+          }}
+        >
+          <Star size={17} strokeWidth={ICON_STROKE} fill={message.flagged ? 'currentColor' : 'none'} />
+        </IconButton>
+        {onDelete ? (
+          <IconButton
+            label={`Delete ${message.subject || '(no subject)'}`}
+            className="trash-button"
+            disabled={deleting}
+            onClick={(event) => {
+              // The card itself opens the message; without this, deleting also opens what it deleted.
+              event.stopPropagation()
+              onDelete()
+            }}
+          >
+            <Trash2 size={17} strokeWidth={ICON_STROKE} />
+          </IconButton>
+        ) : null}
+      </div>
     </article>
   )
 }
