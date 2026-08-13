@@ -1,0 +1,177 @@
+/* VENDORED — do not edit here.
+   Source of truth: website-and-portal-nextjs/src/styles/tokens.css
+   Copy that file over this one when it changes. tokens.css next to this
+   aliases the webmail client's own names onto these. */
+
+:root {
+  /* ---- primitives: brand ---- */
+  --qx-pink-50: #fff1f6;
+  --qx-pink-100: #ffe3ec;
+  --qx-pink-200: #ffc6da;
+  --qx-pink-300: #ff9bbe;
+  --qx-pink-400: #fa5f96;
+  --qx-pink-500: #e60063;
+  --qx-pink-600: #c70055;
+  --qx-pink-700: #a30046;
+  --qx-pink-800: #7d0036;
+  --qx-pink-900: #57002a;
+  /* Brand pink lifted for dark surfaces — #e60063 is too dim on near-black. */
+  --qx-pink-bright: #ff2d78;
+  --qx-pink-bright-hover: #ff5591;
+
+  /* ---- primitives: neutrals (true grey, never pink-tinted) ---- */
+  --qx-n-0: #ffffff;
+  --qx-n-25: #fcfcfd;
+  --qx-n-50: #f7f8f9;
+  --qx-n-100: #f0f1f3;
+  --qx-n-200: #e4e6ea;
+  --qx-n-300: #cfd3da;
+  --qx-n-400: #a3a9b5;
+  --qx-n-500: #767d8c;
+  --qx-n-600: #5b616e;
+  --qx-n-700: #414753;
+  --qx-n-800: #2a2f39;
+  --qx-n-900: #191d25;
+  --qx-n-950: #0f1115;
+
+  /* ---- primitives: status ---- */
+  --qx-green-500: #12a56f;
+  --qx-green-100: #dcf5eb;
+  --qx-amber-500: #b26a00;
+  --qx-amber-100: #fdf0d5;
+  --qx-red-500: #d92d20;
+  --qx-red-100: #fde4e2;
+  --qx-blue-500: #2563eb;
+  --qx-blue-100: #dfe9fe;
+
+  /* ---- type ---- */
+  --qx-font-sans: var(--font-jakarta-sans, "Plus Jakarta Sans"), "Inter", system-ui, sans-serif;
+  --qx-font-mono: var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, "SF Mono", monospace;
+
+  --qx-text-xs: 0.75rem;
+  --qx-text-sm: 0.8125rem;
+  --qx-text-base: 0.9375rem;
+  --qx-text-md: 1rem;
+  --qx-text-lg: 1.125rem;
+  --qx-text-xl: 1.25rem;
+  --qx-text-2xl: 1.5rem;
+  --qx-text-3xl: 1.875rem;
+  --qx-text-4xl: 2.25rem;
+  --qx-text-5xl: 2.875rem;
+  --qx-text-6xl: 3.5rem;
+
+  --qx-leading-tight: 1.1;
+  --qx-leading-snug: 1.3;
+  --qx-leading-normal: 1.6;
+  --qx-tracking-tight: -0.022em;
+  --qx-tracking-display: -0.032em;
+  --qx-tracking-wide: 0.08em;
+
+  /* ---- space (4px base) ---- */
+  --qx-space-1: 0.25rem;
+  --qx-space-2: 0.5rem;
+  --qx-space-3: 0.75rem;
+  --qx-space-4: 1rem;
+  --qx-space-5: 1.25rem;
+  --qx-space-6: 1.5rem;
+  --qx-space-8: 2rem;
+  --qx-space-10: 2.5rem;
+  --qx-space-12: 3rem;
+  --qx-space-16: 4rem;
+  --qx-space-20: 5rem;
+  --qx-space-24: 6rem;
+
+  /* ---- radius ---- */
+  --qx-radius-xs: 0.25rem;
+  --qx-radius-sm: 0.375rem;
+  --qx-radius-md: 0.5rem;
+  --qx-radius-lg: 0.625rem;
+  --qx-radius-xl: 0.875rem;
+  --qx-radius-2xl: 1.125rem;
+  --qx-radius-full: 9999px;
+
+  /* ---- elevation: neutral, never tinted ---- */
+  --qx-shadow-xs: 0 1px 2px rgb(16 20 28 / 0.05);
+  --qx-shadow-sm: 0 1px 3px rgb(16 20 28 / 0.07), 0 1px 2px rgb(16 20 28 / 0.04);
+  --qx-shadow-md: 0 4px 12px -2px rgb(16 20 28 / 0.09);
+  --qx-shadow-lg: 0 14px 32px -10px rgb(16 20 28 / 0.16);
+
+  --qx-motion-fast: 120ms;
+  --qx-motion-base: 180ms;
+  --qx-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---- semantic: light (default) ---- */
+  --qx-bg: var(--qx-n-0);
+  --qx-bg-subtle: var(--qx-n-50);
+  --qx-bg-sunken: var(--qx-n-100);
+  --qx-surface: var(--qx-n-0);
+  --qx-surface-hover: var(--qx-n-50);
+
+  --qx-fg: var(--qx-n-950);
+  --qx-fg-muted: var(--qx-n-600);
+  --qx-fg-subtle: var(--qx-n-500);
+  --qx-fg-on-accent: var(--qx-n-0);
+
+  --qx-border: var(--qx-n-200);
+  --qx-border-strong: var(--qx-n-300);
+
+  --qx-accent: var(--qx-pink-500);
+  --qx-accent-hover: var(--qx-pink-600);
+  --qx-accent-fg: var(--qx-pink-700);
+  --qx-accent-subtle: var(--qx-pink-50);
+  --qx-accent-border: var(--qx-pink-200);
+  --qx-focus: var(--qx-pink-500);
+
+  --qx-success: var(--qx-green-500);
+  --qx-success-subtle: var(--qx-green-100);
+  --qx-warning: var(--qx-amber-500);
+  --qx-warning-subtle: var(--qx-amber-100);
+  --qx-danger: var(--qx-red-500);
+  --qx-danger-subtle: var(--qx-red-100);
+  --qx-info: var(--qx-blue-500);
+  --qx-info-subtle: var(--qx-blue-100);
+
+  color-scheme: light;
+}
+
+/* Dark. `.dark` is next-themes in the Next app; `.theme-dark` is the webmail
+   client, which is dark-first — both select the same block. */
+.dark,
+.theme-dark {
+  --qx-bg: var(--qx-n-950);
+  --qx-bg-subtle: var(--qx-n-900);
+  --qx-bg-sunken: #0a0c10;
+  --qx-surface: var(--qx-n-900);
+  --qx-surface-hover: var(--qx-n-800);
+
+  --qx-fg: var(--qx-n-50);
+  --qx-fg-muted: var(--qx-n-400);
+  --qx-fg-subtle: var(--qx-n-500);
+  --qx-fg-on-accent: var(--qx-n-0);
+
+  --qx-border: #262b35;
+  --qx-border-strong: #333945;
+
+  --qx-accent: var(--qx-pink-bright);
+  --qx-accent-hover: var(--qx-pink-bright-hover);
+  --qx-accent-fg: var(--qx-pink-300);
+  --qx-accent-subtle: #2a0f1c;
+  --qx-accent-border: #4a1830;
+  --qx-focus: var(--qx-pink-bright);
+
+  --qx-success: #3dd68c;
+  --qx-success-subtle: #0d2a20;
+  --qx-warning: #f5a524;
+  --qx-warning-subtle: #2e2210;
+  --qx-danger: #f97066;
+  --qx-danger-subtle: #331512;
+  --qx-info: #74a4fb;
+  --qx-info-subtle: #131f36;
+
+  --qx-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.35);
+  --qx-shadow-sm: 0 1px 3px rgb(0 0 0 / 0.45);
+  --qx-shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
+  --qx-shadow-lg: 0 14px 32px -10px rgb(0 0 0 / 0.6);
+
+  color-scheme: dark;
+}
