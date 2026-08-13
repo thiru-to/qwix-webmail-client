@@ -308,7 +308,7 @@ export function CalendarWorkspace() {
               </>
             }
           >
-            <EventDetail event={selected} />
+            <EventDetail event={selected} heading={false} />
             {remove.error ? (
               <p className="ui-form-error" role="alert">
                 {remove.error.message}

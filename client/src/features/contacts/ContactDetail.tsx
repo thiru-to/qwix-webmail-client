@@ -7,12 +7,24 @@ import { LabelPicker } from '../labels/LabelPicker'
 import { avatarTone, initialsOf } from '../../lib/format'
 import { ICON, ICON_STROKE } from '../../lib/icons'
 
-/** Rendered both in the detail pane and inside the dialog, so the two cannot describe a contact differently. */
-export function ContactDetail({ contact, onEdit }: { contact?: ContactItem; onEdit?: () => void }) {
+/**
+ * Rendered both in the detail pane and inside the dialog, so the two cannot describe a contact
+ * differently. `heading` goes off in the dialog, whose own header already carries the name.
+ */
+export function ContactDetail({
+  contact,
+  onEdit,
+  heading = true,
+}: {
+  contact?: ContactItem
+  onEdit?: () => void
+  heading?: boolean
+}) {
   if (!contact) return <p className="loading-state">Select a contact to view details.</p>
 
   return (
     <>
+      {heading ? (
       <div className="reader-sender">
         <Avatar initials={initialsOf(contact.name)} tone={avatarTone(contact.id)} size="large" />
         <div className="sender-details">
@@ -29,6 +41,7 @@ export function ContactDetail({ contact, onEdit }: { contact?: ContactItem; onEd
           </Button>
         ) : null}
       </div>
+      ) : null}
       <div className="detail-labels">
         <LabelPicker kind="contact" resourceId={contact.id} active={contact.labelIds} />
         <LabelChips ids={contact.labelIds} />

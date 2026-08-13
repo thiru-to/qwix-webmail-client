@@ -160,7 +160,7 @@ export function ContactsWorkspace() {
               </>
             }
           >
-            <ContactDetail contact={selected} />
+            <ContactDetail contact={selected} heading={false} />
             {remove.error ? (
               <p className="ui-form-error" role="alert">
                 {remove.error.message}

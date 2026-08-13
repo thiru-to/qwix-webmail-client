@@ -35,13 +35,23 @@ export function EventRow({
   )
 }
 
-export function EventDetail({ event, onEdit }: { event?: EventView; onEdit?: () => void }) {
+// `heading` off inside a dialog, whose own header already carries the date and title.
+export function EventDetail({
+  event,
+  onEdit,
+  heading = true,
+}: {
+  event?: EventView
+  onEdit?: () => void
+  heading?: boolean
+}) {
   if (!event) {
     return <p className="loading-state">Select an event to preview it.</p>
   }
 
   return (
     <>
+      {heading ? (
       <div className="calendar-detail-head">
         <div>
           <div className="eyebrow">{event.dayLabel}</div>
@@ -53,6 +63,7 @@ export function EventDetail({ event, onEdit }: { event?: EventView; onEdit?: () 
           </Button>
         ) : null}
       </div>
+      ) : null}
       <p className="calendar-detail-meta">
         {event.timeLabel}
         {event.recurring ? <Repeat size={ICON.sm} strokeWidth={ICON_STROKE} /> : null}
