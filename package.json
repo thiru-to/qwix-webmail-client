@@ -4,17 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,client -c cyan,magenta \"pnpm dev:api\" \"pnpm dev:client\"",
+    "dev": "bun node_modules/concurrently/dist/bin/concurrently.js -k -n api,client -c cyan,magenta \"bun run dev:api\" \"bun run dev:client\"",
     "dev:api": "cd api && bun run dev",
-    "dev:client": "cd client && pnpm dev"
+    "dev:client": "cd client && bun run dev"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
   },
   "devEngines": {
     "packageManager": {
-      "name": "pnpm",
-      "version": "^11.10.0",
+      "name": "bun",
+      "version": "^1.3.14",
       "onFail": "download"
     }
   }

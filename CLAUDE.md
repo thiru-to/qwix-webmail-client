@@ -2,18 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Qwix is a webmail client for standard IMAP/SMTP/CalDAV/CardDAV servers. Two packages, two package managers, no shared root workspace.
+Qwix is a webmail client for standard IMAP/SMTP/CalDAV/CardDAV servers. Two packages, both Bun-managed, no shared root workspace.
 
 ## Commands
 
 ```sh
-pnpm install && pnpm dev                    # root: both servers via concurrently
+bun install && bun run dev                  # root: both servers via concurrently
 cd api    && bun install && bun run dev     # Hono API on :3000, hot reload
-cd client && pnpm install && pnpm dev       # Vite on :5173
-cd client && pnpm build                     # tsc -b && vite build
-cd client && pnpm lint                      # eslint
+cd client && bun install && bun run dev     # Vite on :5173
+cd client && bun run build                  # tsc -b && vite build
+cd client && bun run lint                   # eslint
 cd api    && bunx drizzle-kit generate      # after editing src/db/schema.ts
 ```
+
+Bun is the package manager and the runtime everywhere. Client scripts invoke tool
+entrypoints by path (`bun node_modules/vite/bin/vite.js`) because `bun --bun vite`
+still honours the `#!/usr/bin/env node` shebang and silently runs Vite under Node.
 
 No test suite exists. Migrations in `api/drizzle/` run automatically at API startup.
 
